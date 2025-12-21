@@ -4,6 +4,13 @@ export type CollatzParams = {
     increment?: number;    // t, default 1
 };
 
+export type SequenceParams = {
+    maxSteps?: number;
+    maxTail?: number;
+    autoTrimTail?: boolean;
+};
+
+
 export type CollatzResult = {
     sequence: number[];       // (possibly trimmed) sequence including start
     detectedCycle: number[] | null; // minimal detected tail cycle, if any

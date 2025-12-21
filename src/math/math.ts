@@ -1,8 +1,7 @@
-import type {CollatzParams, CollatzResult} from "./types.ts";
-import type {Nullable} from "../misc";
+import type {CollatzParams, CollatzResult, SequenceParams} from "./types.ts";
 
 /** Find minimal tail cycle (if the very end of arr is periodic). */
-function findTailCycle<T>(arr: T[]): Nullable<T[]> {
+function findTailCycle<T>(arr: T[]): T[] | null {
     const n = arr.length;
     if (n < 2) return null;
 
@@ -74,11 +73,7 @@ export const generateCollatzSequence = (
         maxSteps = 50_000,
         maxTail = 2_000,    // keep only last maxTail values in memory while running
         autoTrimTail = true // trim repeated tail cycles to a single last occurrence
-    }: {
-        maxSteps?: number;
-        maxTail?: number;
-        autoTrimTail?: boolean;
-    } = {}
+    }: SequenceParams = {}
 ): CollatzResult => {
     if (!Number.isFinite(startValue) || startValue <= 0) {
         return {
@@ -94,10 +89,22 @@ export const generateCollatzSequence = (
     }
 
     const seq: number[] = [startValue];
-    let detectedCycle: Nullable<number[]> = null;
+    let detectedCycle: number[] | null = null;
 
     for (let steps = 0; steps < maxSteps; steps++) {
-        const next = collatzStep(seq[seq.length - 1], divisor, multiplier, increment);
+        const current = seq.at(-1);
+        // With strict configs like `noUncheckedIndexedAccess`, the last element can be `undefined`
+        // (e.g. if caller sets `maxTail` to 0 and we splice everything out). Guard without changing logic.
+        if (!current) {
+            return {
+                sequence: seq,
+                detectedCycle,
+                steps,
+                stoppedBecause: "non_finite_or_negative",
+            };
+        }
+
+        const next = collatzStep(current, divisor, multiplier, increment);
 
         if (!Number.isFinite(next) || next <= 0) {
             return {
