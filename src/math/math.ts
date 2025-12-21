@@ -93,8 +93,7 @@ export const generateCollatzSequence = (
 
     for (let steps = 0; steps < maxSteps; steps++) {
         const current = seq.at(-1);
-        // With strict configs like `noUncheckedIndexedAccess`, the last element can be `undefined`
-        // (e.g. if caller sets `maxTail` to 0 and we splice everything out). Guard without changing logic.
+
         if (!current) {
             return {
                 sequence: seq,
@@ -104,7 +103,7 @@ export const generateCollatzSequence = (
             };
         }
 
-        const next = collatzStep(current, divisor, multiplier, increment);
+        const next: number = collatzStep(current, divisor, multiplier, increment);
 
         if (!Number.isFinite(next) || next <= 0) {
             return {
