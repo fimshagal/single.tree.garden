@@ -1,4 +1,5 @@
 import type {AdicDebug, CollatzParams, CollatzResult, TraceMode} from "./types.ts";
+import type {Nullable} from "../misc";
 
 /** v2(x): exponent of 2 in x (how many times divisible by 2). Assumes x is a positive safe integer. */
 const v2 = (x: number): number => {
@@ -46,7 +47,7 @@ const detectCycleByStatePush = (
     key: string,
     index: number
 ): { startIndex: number; length: number; stateKey: string } | null => {
-    const prev: number = seen.get(key);
+    const prev: Nullable<number> = seen.get(key);
     if (prev) {
         return { startIndex: prev, length: index - prev, stateKey: key };
     }
