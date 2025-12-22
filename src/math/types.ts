@@ -10,6 +10,11 @@ export type SequenceParams = {
     autoTrimTail?: boolean;
 };
 
+export type SequenceTrimResult<T> = {
+    trimmed: T[];
+    cycle: T[] | null;
+};
+
 
 export type CollatzResult = {
     sequence: number[];       // (possibly trimmed) sequence including start

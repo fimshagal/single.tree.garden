@@ -1,13 +1,11 @@
-import type {CollatzParams, CollatzResult, SequenceParams} from "./types.ts";
+import type {CollatzParams, CollatzResult, SequenceParams, SequenceTrimResult} from "./types.ts";
 
-/** Find minimal tail cycle (if the very end of arr is periodic). */
-function findTailCycle<T>(arr: T[]): T[] | null {
+const findTailCycle = <T>(arr: T[]): T[] | null => {
     const n = arr.length;
     if (n < 2) return null;
 
-    // try cycle lengths k = 1..floor(n/2)
     for (let k = 1; k <= Math.floor(n / 2); k++) {
-        // last k equals previous k?
+
         let ok = true;
         for (let i = 0; i < k; i++) {
             if (arr[n - 1 - i] !== arr[n - 1 - i - k]) {
@@ -17,23 +15,19 @@ function findTailCycle<T>(arr: T[]): T[] | null {
         }
         if (!ok) continue;
 
-        // If you want to be stricter, you can require 3 repeats.
-        // Here: 2 repeats are enough to call it a cycle candidate.
         return arr.slice(n - k);
     }
 
     return null;
 }
 
-/** Trim repeated tail cycles so only ONE last cycle remains at the end. */
-function trimToLastTailCycle<T>(arr: T[]): { trimmed: T[]; cycle: T[] | null } {
+const trimToLastTailCycle = <T>(arr: T[]): SequenceTrimResult<T> => {
     const cycle = findTailCycle(arr);
     if (!cycle) return { trimmed: arr.slice(), cycle: null };
 
     const k = cycle.length;
     let i = arr.length;
 
-    // Remove as many full-cycle repeats from the end as possible
     while (i >= k) {
         const block = arr.slice(i - k, i);
         let same = true;
@@ -47,17 +41,11 @@ function trimToLastTailCycle<T>(arr: T[]): { trimmed: T[]; cycle: T[] | null } {
         i -= k;
     }
 
-    // Put back exactly one last cycle
     const trimmed = [...arr.slice(0, i), ...cycle];
     return { trimmed, cycle };
 }
 
-function collatzStep(
-    current: number,
-    divisor: number,
-    multiplier: number,
-    increment: number
-): number {
+const collatzStep = (current: number, divisor: number, multiplier: number, increment: number): number => {
     if (current % divisor === 0) return current / divisor;
     return multiplier * current + increment;
 }
