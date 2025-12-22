@@ -1,56 +1,60 @@
-import type {CollatzParams, CollatzResult, SequenceParams, SequenceTrimResult} from "./types.ts";
+import type {AdicDebug, CollatzParams, CollatzResult, TraceMode} from "./types.ts";
 
-const findTailCycle = <T>(arr: T[]): T[] | null => {
-    const n = arr.length;
-    if (n < 2) return null;
-
-    for (let k = 1; k <= Math.floor(n / 2); k++) {
-
-        let ok = true;
-        for (let i = 0; i < k; i++) {
-            if (arr[n - 1 - i] !== arr[n - 1 - i - k]) {
-                ok = false;
-                break;
-            }
-        }
-        if (!ok) continue;
-
-        return arr.slice(n - k);
+/** v2(x): exponent of 2 in x (how many times divisible by 2). Assumes x is a positive safe integer. */
+const v2 = (x: number): number => {
+    let k: number = 0;
+    while ((x & 1) === 0) { // works reliably while x is within 32-bit. For big numbers use (x % 2 === 0).
+        x = x / 2;
+        k++;
     }
+    return k;
+};
 
+/** Safer v2 for JS numbers (works beyond 32-bit, slower). */
+const v2Safe = (x: number): number => {
+    let k: number = 0;
+    while (x % 2 === 0) {
+        x = x / 2;
+        k++;
+    }
+    return k;
+};
+
+/** One FULL generalized Collatz step (your current behavior). */
+const collatzStepFull = (n: number, d: number, q: number, t: number): number => {
+    return n % d === 0 ? n / d : q * n + t;
+}
+
+/**
+ * One ODD-ONLY step (accelerated):
+ * - expects n is odd positive integer
+ * - computes a = q*n + t
+ * - strips all factors of 2: n' = a / 2^k, where k = v2(a)
+ * - returns { nextOdd, k }
+ */
+const collatzStepOddOnly = (nOdd: number, q: number, t: number): { nextOdd: number; k: number } => {
+    const a: number = q * nOdd + t;
+    if (!Number.isSafeInteger(a) || a <= 0) return { nextOdd: a, k: 0 };
+
+    const k: number = v2Safe(a);
+    return { nextOdd: a / 2 ** k, k };
+}
+
+/** Detect cycle by first repeated "state key" (classic tortoise-map but using Map index). */
+const detectCycleByStatePush = (
+    seen: Map<string, number>,
+    key: string,
+    index: number
+): { startIndex: number; length: number; stateKey: string } | null => {
+    const prev: number = seen.get(key);
+    if (prev) {
+        return { startIndex: prev, length: index - prev, stateKey: key };
+    }
+    seen.set(key, index);
     return null;
 }
 
-const trimToLastTailCycle = <T>(arr: T[]): SequenceTrimResult<T> => {
-    const cycle = findTailCycle(arr);
-    if (!cycle) return { trimmed: arr.slice(), cycle: null };
-
-    const k = cycle.length;
-    let i = arr.length;
-
-    while (i >= k) {
-        const block = arr.slice(i - k, i);
-        let same = true;
-        for (let j = 0; j < k; j++) {
-            if (block[j] !== cycle[j]) {
-                same = false;
-                break;
-            }
-        }
-        if (!same) break;
-        i -= k;
-    }
-
-    const trimmed = [...arr.slice(0, i), ...cycle];
-    return { trimmed, cycle };
-}
-
-const collatzStep = (current: number, divisor: number, multiplier: number, increment: number): number => {
-    if (current % divisor === 0) return current / divisor;
-    return multiplier * current + increment;
-}
-
-export const generateCollatzSequence = (
+export const generateCollatzSequenceAdic = (
     startValue: number,
     {
         divisor = 2,
@@ -58,75 +62,131 @@ export const generateCollatzSequence = (
         increment = 1,
     }: CollatzParams = {},
     {
-        maxSteps = 50_000,
-        maxTail = 2_000,    // keep only last maxTail values in memory while running
-        autoTrimTail = true // trim repeated tail cycles to a single last occurrence
-    }: SequenceParams = {}
+        maxSteps = 200_000,
+        mode = "full" as TraceMode,
+
+        // For adic diagnostics:
+        trackAdic = true,
+        residueBits = [8, 12, 16], // track n mod 2^b
+        stopOnStateCycle = true,    // stop immediately if state repeats
+    }: {
+        maxSteps?: number;
+        mode?: TraceMode;
+
+        trackAdic?: boolean;
+        residueBits?: number[];
+        stopOnStateCycle?: boolean;
+    } = {}
 ): CollatzResult => {
     if (!Number.isFinite(startValue) || startValue <= 0) {
-        return {
-            sequence: [startValue],
-            detectedCycle: null,
-            steps: 0,
-            stoppedBecause: "non_finite_or_negative",
-        };
-    }
-    if (divisor <= 1) throw new Error("divisor must be >= 2");
-    if (!Number.isFinite(multiplier) || !Number.isFinite(increment)) {
-        throw new Error("multiplier/increment must be finite numbers");
+        return { sequence: [startValue], steps: 0, stoppedBecause: "nonFiniteOrNegative", detectedCycle: null };
     }
 
     const seq: number[] = [startValue];
-    let detectedCycle: number[] | null = null;
+
+    // adic tracking
+    const kProfile: number[] = [];
+    const residues: number[][] | undefined = trackAdic
+        ? residueBits.map(() => [])
+        : undefined;
+
+    const seen = new Map<string, number>(); // key -> index in seq
+    const makeResidueKey = (n: number) =>
+        residueBits
+            .map((b) => {
+                const mod = 2 ** b;
+                return (n % mod + mod) % mod; // safe for positive n
+            })
+            .join("|");
+
+    const pushResidues = (n: number) => {
+        if (!residues) return;
+        for (let i = 0; i < residueBits.length; i++) {
+            const mod = 2 ** residueBits[i];
+            residues[i].push(n % mod);
+        }
+    };
+
+    // init
+    pushResidues(startValue);
+
+    // seed "state cycle" detection
+    if (stopOnStateCycle) {
+        const key =
+            mode === "oddOnly"
+                ? `odd:${startValue % 2 === 0 ? startValue / 2 : startValue}` // not perfect; see below
+                : `n:${startValue}|r:${makeResidueKey(startValue)}`;
+        seen.set(key, 0);
+    }
+
+    let cycleByState: AdicDebug["cycleByState"] = null;
+
+    // If odd_only mode, normalize start to odd (like classic accelerated Collatz)
+    let current = startValue;
+    if (mode === "oddOnly") {
+        while (current % 2 === 0) current /= 2;
+        seq[0] = current;
+    }
 
     for (let steps = 0; steps < maxSteps; steps++) {
-        const current = seq.at(-1);
+        let next: number;
 
-        if (!current) {
-            return {
-                sequence: seq,
-                detectedCycle,
-                steps,
-                stoppedBecause: "non_finite_or_negative",
-            };
+        if (mode === "full") {
+            next = collatzStepFull(current, divisor, multiplier, increment);
+        } else {
+            // odd-only
+            const { nextOdd, k } = collatzStepOddOnly(current, multiplier, increment);
+            kProfile.push(k);
+            next = nextOdd;
         }
-
-        const next: number = collatzStep(current, divisor, multiplier, increment);
 
         if (!Number.isFinite(next) || next <= 0) {
             return {
                 sequence: seq,
-                detectedCycle,
                 steps,
-                stoppedBecause: "non_finite_or_negative",
+                stoppedBecause: "nonFiniteOrNegative",
+                detectedCycle: null,
+                adic: trackAdic
+                    ? { mode, kProfile, residues, cycleByState }
+                    : undefined,
             };
         }
 
-        seq.push(next);
+        current = next;
+        seq.push(current);
+        pushResidues(current);
 
-        // Keep memory bounded (still enough for tail-cycle detection).
-        if (seq.length > maxTail) {
-            seq.splice(0, seq.length - maxTail);
-        }
+        if (stopOnStateCycle) {
+            // Choose a "state key" depending on what you want to prove.
+            // For 2-adic stability, residue key is gold.
+            // For true numeric cycle, use just n.
+            const key =
+                mode === "oddOnly"
+                    ? `odd:${current}` // odd-only already normalized
+                    : `n:${current}|r:${makeResidueKey(current)}`;
 
-        // Detect tail cycle and stop.
-        // (We check after each append; you can also check every K steps if you want.)
-        detectedCycle = findTailCycle(seq);
-        if (detectedCycle) {
-            const out = autoTrimTail ? trimToLastTailCycle(seq).trimmed : seq.slice();
-            return {
-                sequence: out,
-                detectedCycle,
-                steps: steps + 1,
-                stoppedBecause: "cycle_detected",
-            };
+            const cyc = detectCycleByStatePush(seen, key, seq.length - 1);
+            if (cyc) {
+                cycleByState = cyc;
+                const detectedCycle = seq.slice(cyc.startIndex);
+                return {
+                    sequence: seq,
+                    steps: steps + 1,
+                    stoppedBecause: "cycleDetected",
+                    detectedCycle,
+                    adic: trackAdic
+                        ? { mode, kProfile, residues, cycleByState }
+                        : undefined,
+                };
+            }
         }
     }
 
     return {
-        sequence: autoTrimTail ? trimToLastTailCycle(seq).trimmed : seq.slice(),
-        detectedCycle,
+        sequence: seq,
         steps: maxSteps,
-        stoppedBecause: "max_steps_reached",
+        stoppedBecause: "maxStepsReached",
+        detectedCycle: null,
+        adic: trackAdic ? { mode, kProfile, residues, cycleByState } : undefined,
     };
-}
+};

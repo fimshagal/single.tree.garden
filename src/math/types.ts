@@ -15,13 +15,34 @@ export type SequenceTrimResult<T> = {
     cycle: T[] | null;
 };
 
+type StoppedBecause = "cycleDetected" | "maxStepsReached" | "nonFiniteOrNegative";
+
+export type TraceMode = "full" | "oddOnly";
+
+export type AdicDebug = {
+    mode: TraceMode;
+
+    // 2-adic profile: on each odd-step we record k = v2(q*n + t)
+    kProfile: number[];
+
+    // residues: n mod 2^b for each step (optional, can be heavy)
+    residues?: number[][]; // residues[bIndex][step] = residue
+
+    // cycle info by state repeat (stronger than tail periodicity)
+    cycleByState:
+        | null
+        | {
+        startIndex: number;   // index where cycle starts in produced sequence
+        length: number;       // cycle length
+        stateKey: string;     // repeated state key
+    };
+};
+
 
 export type CollatzResult = {
-    sequence: number[];       // (possibly trimmed) sequence including start
-    detectedCycle: number[] | null; // minimal detected tail cycle, if any
-    steps: number;            // number of transitions performed
-    stoppedBecause:
-        | "cycle_detected"
-        | "max_steps_reached"
-        | "non_finite_or_negative";
+    sequence: number[];
+    steps: number;
+    stoppedBecause: StoppedBecause;
+    detectedCycle: number[] | null;
+    adic?: AdicDebug;
 };

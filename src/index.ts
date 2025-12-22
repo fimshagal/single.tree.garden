@@ -1,3 +1,3 @@
-import {generateCollatzSequence} from "./math";
+import {generateCollatzSequenceAdic} from "./math";
 
-console.log(generateCollatzSequence(1771717));
+console.log(generateCollatzSequenceAdic(17, {}));
