@@ -1,5 +1,6 @@
 import type {AdicDebug, CollatzParams, CollatzResult, TraceMode} from "./types.ts";
 import type {Nullable} from "../misc";
+import {typeOf} from "../misc";
 
 /** v2(x): exponent of 2 in x (how many times divisible by 2). Assumes x is a positive safe integer. */
 const v2 = (x: number): number => {
@@ -48,7 +49,7 @@ const detectCycleByStatePush = (
     index: number
 ): { startIndex: number; length: number; stateKey: string } | null => {
     const prev: Nullable<number> = seen.get(key);
-    if (prev) {
+    if (typeOf(prev) !== "undefined") {
         return { startIndex: prev, length: index - prev, stateKey: key };
     }
     seen.set(key, index);
@@ -108,26 +109,28 @@ export const generateCollatzSequenceAdic = (
         }
     };
 
-    // init
-    pushResidues(startValue);
-
-    // seed "state cycle" detection
-    if (stopOnStateCycle) {
-        const key =
-            mode === "oddOnly"
-                ? `odd:${startValue % 2 === 0 ? startValue / 2 : startValue}` // not perfect; see below
-                : `n:${startValue}|r:${makeResidueKey(startValue)}`;
-        seen.set(key, 0);
-    }
-
     let cycleByState: AdicDebug["cycleByState"] = null;
 
-    // If odd_only mode, normalize start to odd (like classic accelerated Collatz)
+    // ---- FIX: normalize BEFORE residues init + BEFORE seeding seen ----
     let current = startValue;
+
     if (mode === "oddOnly") {
         while (current % 2 === 0) current /= 2;
         seq[0] = current;
     }
+
+    // init residues AFTER normalization (avoid pushing startValue twice / inconsistently)
+    pushResidues(seq[0]);
+
+    // seed "state cycle" detection AFTER normalization
+    if (stopOnStateCycle) {
+        const key =
+            mode === "oddOnly"
+                ? `odd:${current}`
+                : `n:${current}|r:${makeResidueKey(current)}`;
+        seen.set(key, 0);
+    }
+    // ------------------------------------------------------------------
 
     for (let steps = 0; steps < maxSteps; steps++) {
         let next: number;
@@ -135,7 +138,6 @@ export const generateCollatzSequenceAdic = (
         if (mode === "full") {
             next = collatzStepFull(current, divisor, multiplier, increment);
         } else {
-            // odd-only
             const { nextOdd, k } = collatzStepOddOnly(current, multiplier, increment);
             kProfile.push(k);
             next = nextOdd;
@@ -147,9 +149,7 @@ export const generateCollatzSequenceAdic = (
                 steps,
                 stoppedBecause: "nonFiniteOrNegative",
                 detectedCycle: null,
-                adic: trackAdic
-                    ? { mode, kProfile, residues, cycleByState }
-                    : undefined,
+                adic: trackAdic ? { mode, kProfile, residues, cycleByState } : undefined,
             };
         }
 
@@ -158,12 +158,9 @@ export const generateCollatzSequenceAdic = (
         pushResidues(current);
 
         if (stopOnStateCycle) {
-            // Choose a "state key" depending on what you want to prove.
-            // For 2-adic stability, residue key is gold.
-            // For true numeric cycle, use just n.
             const key =
                 mode === "oddOnly"
-                    ? `odd:${current}` // odd-only already normalized
+                    ? `odd:${current}`
                     : `n:${current}|r:${makeResidueKey(current)}`;
 
             const cyc = detectCycleByStatePush(seen, key, seq.length - 1);
@@ -175,9 +172,7 @@ export const generateCollatzSequenceAdic = (
                     steps: steps + 1,
                     stoppedBecause: "cycleDetected",
                     detectedCycle,
-                    adic: trackAdic
-                        ? { mode, kProfile, residues, cycleByState }
-                        : undefined,
+                    adic: trackAdic ? { mode, kProfile, residues, cycleByState } : undefined,
                 };
             }
         }
