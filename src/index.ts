@@ -1,11 +1,16 @@
 import {generateCollatzSequenceAdic} from "./math";
+import {onDocReady} from "./misc/on.doc.ready.ts";
+import {initRenderer, updateRenderer} from "./draw";
+import {exefe} from "./misc";
 
-for (let i = 5; i < 20; i++) {
-    const result = generateCollatzSequenceAdic(
-        i,
-        {},
-        { mode: "oddOnly" }
-    );
+exefe(async (): Promise<void> => {
+    await onDocReady();
 
-    console.log(result);
-}
+    initRenderer({
+        parent: document.getElementById('pixiTarget'),
+    });
+
+    updateRenderer({
+        sequence: generateCollatzSequenceAdic(11).sequence,
+    });
+});
