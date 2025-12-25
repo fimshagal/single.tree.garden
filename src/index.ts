@@ -15,7 +15,7 @@ exefe(async (): Promise<void> => {
     // inside each group: base, 1.5×base, 2×base
     const groupMultipliers = [2, 3, 4] as const; // divide by 2 => 1×, 1.5×, 2×
 
-    for (let base = 8; base <= 512; base *= 4) {
+    for (let base = 8; base <= 2048; base *= 4) {
         for (const m of groupMultipliers) {
             const n = (base * m) / 2;
             const color = m === 3 ? 0x7FC248 : 0xB7855F;
