@@ -1,9 +1,8 @@
 import {generateCollatzSequenceAdic} from "./math";
 import {onDocReady} from "./misc/on.doc.ready.ts";
 import {initRenderer, updateRenderer} from "./draw";
-import {exefe} from "./misc";
 
-exefe(async (): Promise<void> => {
+(async (): Promise<void> => {
     await onDocReady();
 
     initRenderer({
@@ -36,4 +35,4 @@ exefe(async (): Promise<void> => {
         sequence: generateCollatzSequenceAdic(64).sequence,
         color: 0xff0000,
     });
-});
+})();
