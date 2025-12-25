@@ -18,18 +18,20 @@ const rendererPixi: CollatzRendererPixiData = {
 
 const rendererGrid: CollatzRendererGridData = {
     scales: {
-        ribs: 1.5,
-        sequenceGrow: 5,
+        ribs: 6,
+        sequenceGrow: 6,
     },
     ribs: {
         twoPowN: {
             count: 40,
-            color: 0xffff00,
+            color: 0xffffff,
+            alpha: 0.25,
             values: []
         },
         threeExp: {
             count: 40,
-            color: 0xffff00,
+            color: 0xffffff,
+            alpha: 0.125,
             values: []
         },
     },
@@ -120,7 +122,7 @@ const _createGrid = (): void => {
 
     //
 
-    grid!.lineStyle(1, ribs.twoPowN.color, 0.5);
+    grid!.lineStyle(1, ribs.twoPowN.color, ribs.twoPowN.alpha);
 
     for (const value of ribs.twoPowN.values) {
         grid!.moveTo(value * scales.ribs, 0);
@@ -129,7 +131,7 @@ const _createGrid = (): void => {
 
     //
 
-    grid!.lineStyle(1, ribs.threeExp.color, 0.25);
+    grid!.lineStyle(1, ribs.threeExp.color, ribs.threeExp.alpha);
 
     for (const value of ribs.threeExp.values) {
         grid!.moveTo(value * scales.ribs, 0);

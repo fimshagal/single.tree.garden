@@ -19,6 +19,7 @@ export interface CollatzRendererPixiData {
 
 export interface CollatzRendererGridRibsConfig {
     count: number;
+    alpha: number;
     color: number;
     values: number[];
 }
