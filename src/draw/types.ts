@@ -7,11 +7,14 @@ export interface CollatzRendererInitialConfig {
 
 export interface CollatzRendererUpdateConfig {
     sequence: number[];
+    color?: number;
+    clearBefore?: boolean;
 }
 
 export interface CollatzRendererPixiData {
     app: Nullable<PIXI.Application>;
     grid: Nullable<PIXI.Graphics>;
+    numberPath: Nullable<PIXI.Graphics>;
 }
 
 export interface CollatzRendererGridRibsConfig {
@@ -21,6 +24,7 @@ export interface CollatzRendererGridRibsConfig {
 }
 
 export interface CollatzRendererGridData {
+    scales: Record<string, number>;
     ribs: Record<string, CollatzRendererGridRibsConfig>;
 }
 

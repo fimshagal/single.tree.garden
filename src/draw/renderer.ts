@@ -13,18 +13,23 @@ const rendererIs: Record<string, boolean> = {
 const rendererPixi: CollatzRendererPixiData = {
     app: null,
     grid: null,
+    numberPath: null,
 };
 
 const rendererGrid: CollatzRendererGridData = {
+    scales: {
+        ribs: 1.5,
+        sequenceGrow: 5,
+    },
     ribs: {
         twoPowN: {
-            count: 50,
-            color: 0xffffff,
+            count: 40,
+            color: 0xffff00,
             values: []
         },
         threeExp: {
-            count: 50,
-            color: 0xffffff,
+            count: 40,
+            color: 0xffff00,
             values: []
         },
     },
@@ -53,7 +58,28 @@ export const updateRenderer = (config: CollatzRendererUpdateConfig): void => {
         return;
     }
 
-    // ...
+    const path = _calcNumberPath(config.sequence);
+    const {numberPath} = rendererPixi;
+    const color: number = config.color ?? _getRandomColor();
+
+    if (config.clearBefore) {
+        numberPath!.clear();
+    }
+
+    numberPath!.lineStyle(1, color, 1);
+
+    path
+        .forEach((value, index, array) => {
+            numberPath!.moveTo(value.x, value.y);
+
+            if (index < array.length - 1) {
+                numberPath!.lineTo(array[index + 1].x, array[index + 1].y);
+            }
+        });
+
+    for (const position of path) {
+
+    }
 };
 
 const _createPixiApp = (parent: HTMLElement): void => {
@@ -66,8 +92,6 @@ const _createPixiApp = (parent: HTMLElement): void => {
     });
 
     parent.appendChild(rendererPixi.app!.view as HTMLElement);
-
-    // app!.stage.addChild(rootContainer!);
 };
 
 const _calcRibsValues = (): void => {
@@ -84,29 +108,52 @@ const _calcRibsValues = (): void => {
 
 const _createGrid = (): void => {
 
-    const { ribs } = rendererGrid;
+    const { ribs, scales } = rendererGrid;
 
-    console.log(1);
     rendererPixi.grid = new PIXI.Graphics();
-    console.log(2);
-    const { grid } = rendererGrid;
-    console.log(3);
-    rendererPixi.app!.stage.addChild(grid);
-    //
-    console.log(4);
-    grid.lineStyle(1, ribs.twoPowN.color, 1);
-    console.log(5);
-    for (const value of ribs.twoPowN.values) {
-        grid.moveTo(value, 0);
-        grid.lineTo(value, 600);
-    }
-    console.log(6);
+    rendererPixi.numberPath = new PIXI.Graphics();
+
+    const { grid } = rendererPixi;
+
+    rendererPixi.app!.stage.addChild(grid!);
+    rendererPixi.app!.stage.addChild(rendererPixi.numberPath!);
+
     //
 
-    grid.lineStyle(1, ribs.threeExp.color, 1);
-    console.log(7);
-    for (const value of ribs.threeExp.values) {
-        grid.moveTo(value, 0);
-        grid.lineTo(value, 600);
+    grid!.lineStyle(1, ribs.twoPowN.color, 0.5);
+
+    for (const value of ribs.twoPowN.values) {
+        grid!.moveTo(value * scales.ribs, 0);
+        grid!.lineTo(value * scales.ribs, 1_000);
     }
+
+    //
+
+    grid!.lineStyle(1, ribs.threeExp.color, 0.25);
+
+    for (const value of ribs.threeExp.values) {
+        grid!.moveTo(value * scales.ribs, 0);
+        grid!.lineTo(value * scales.ribs, 1_000);
+    }
+};
+
+const _calcNumberPath = (sequence: number[]): Record<string, number>[] => {
+    const response: Record<string, number>[] = [];
+    const {scales} = rendererGrid;
+
+    const forEach = (value: number, index: number): void => {
+        response.push({
+            x: value * scales.ribs,
+            y: index * scales.sequenceGrow
+        });
+    };
+
+    sequence
+        .forEach(forEach);
+
+    return response;
+};
+
+const _getRandomColor = (): number => {
+    return Math.floor(Math.random() * 0xffffff);
 };
