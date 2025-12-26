@@ -50,7 +50,7 @@ const detectCycleByStatePush = (
 ): { startIndex: number; length: number; stateKey: string } | null => {
     const prev: Nullable<number> = seen.get(key);
     if (typeOf(prev) !== "undefined") {
-        return { startIndex: prev, length: index - prev, stateKey: key };
+        return { startIndex: prev!, length: index - prev, stateKey: key };
     }
     seen.set(key, index);
     return null;

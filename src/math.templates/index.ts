@@ -1,2 +1,2 @@
 export * from "./trunk.ts";
-export * from "./five.friendly.ts";
+export * from "./multiple.of.ts";
