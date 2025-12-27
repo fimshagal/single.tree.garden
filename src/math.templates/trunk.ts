@@ -17,7 +17,7 @@ export const outputTrunk = (baseLimit?: number, updateHandler?: (config: Collatz
     for (let base: number = 8; base <= baseLimit; base *= 4) {
         for (const m of groupMultipliers) {
             const n: number = (base * m) / 2;
-            const color: number = m === 3 ? 0x7FC248 : 0xB7855F;
+            const color: number = m === 3 ? 0xEA3A13 : 0xA6290D;
 
             updateHandler({
                 sequence: generateCollatzSequenceAdic(n).sequence,

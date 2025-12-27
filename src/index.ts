@@ -1,7 +1,7 @@
 import {onDocReady} from "./misc/on.doc.ready.ts";
-import {initRenderer, updateRenderer} from "./draw";
-import {generateCollatzSequenceAdic} from "./math";
+import {initRenderer} from "./draw";
 import {outputTrunk} from "./math.templates";
+import {outputSubCenters} from "./math.templates/sub.centers.ts";
 
 (async (): Promise<void> => {
     await onDocReady();
@@ -11,20 +11,6 @@ import {outputTrunk} from "./math.templates";
     });
 
     outputTrunk();
+    outputSubCenters();
     // outputScaryPeakAlpha();
-
-    // todo sub-center template
-
-    updateRenderer({
-        sequence: generateCollatzSequenceAdic(80).sequence,
-        color: 0xaF1201,
-    });
-
-    updateRenderer({
-        sequence: generateCollatzSequenceAdic(112).sequence,
-        color: 0x81C2a8,
-    });
-
 })();
-
-// 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32
