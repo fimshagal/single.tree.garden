@@ -1,7 +1,6 @@
 import {onDocReady} from "./misc/on.doc.ready.ts";
-import {initRenderer} from "./draw";
-import {outputTrunk, outputMultipleOf} from "./math.templates";
-import {outputScaryPeakAlpha} from "./math.templates/scary.peak.alpha.ts";
+import {initRenderer, updateRenderer} from "./draw";
+import {generateCollatzSequenceAdic} from "./math";
 
 (async (): Promise<void> => {
     await onDocReady();
@@ -11,9 +10,20 @@ import {outputScaryPeakAlpha} from "./math.templates/scary.peak.alpha.ts";
     });
 
     // outputTrunk();
+    // outputScaryPeakAlpha();
 
-    outputScaryPeakAlpha();
+    // todo sub-center template
 
-    // 19- -29
-    // 36-40- -56-60
+    updateRenderer({
+        sequence: generateCollatzSequenceAdic(80).sequence,
+        color: 0x7FC248,
+    });
+
+    updateRenderer({
+        sequence: generateCollatzSequenceAdic(112).sequence,
+        color: 0x7FC248,
+    });
+
 })();
+
+// 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32
