@@ -6,7 +6,7 @@
 ### To-even-normalizer
 ```n * 3 + 1```
 
-### Stage | Level
+### Stage | Level (basic view)
 ```2^n < 5 * 2^(n - 2) < 3 * 2^(n - 1) < 7 * 2^(n - 2) < 2^(n + 1)```
 
 #### Trunk 2 | Level bounds | Trunk
@@ -31,3 +31,6 @@
 
 15 * 2^(n - 3)
 ```
+
+### Stage | Level (advanced view)
+```2^n < (2m + 1) * 2^(n - k) < 2^(n + 1)```
