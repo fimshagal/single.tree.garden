@@ -19,20 +19,20 @@ const rendererPixi: CollatzRendererPixiData = {
 
 const rendererGrid: CollatzRendererGridData = {
     scales: {
-        ribs: 1.75,
-        sequenceGrow: 17,
+        ribs: 0.75,
+        sequenceGrow: 30,
     },
     ribs: {
         twoPowN: {
             count: 40,
             color: 0xffffff,
-            alpha: 0.25,
+            alpha: 0.45,
             values: []
         },
         threeExp: {
             count: 40,
             color: 0xffffff,
-            alpha: 0.125,
+            alpha: 0.25,
             values: []
         },
     },
@@ -134,7 +134,7 @@ const _createGrid = (): void => {
             fontSize: 10,
         });
 
-        text.alpha = 0.5;
+        text.alpha = ribsConfig.alpha;
 
         text.anchor.set(0.5, 0.5);
         text.x = x;
