@@ -18,8 +18,8 @@ const rendererPixi: CollatzRendererPixiData = {
 
 const rendererGrid: CollatzRendererGridData = {
     scales: {
-        ribs: 12,
-        sequenceGrow: 17,
+        ribs: 2,
+        sequenceGrow: 25,
     },
     ribs: {
         twoPowN: {
