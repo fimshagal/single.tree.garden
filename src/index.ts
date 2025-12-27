@@ -4,9 +4,10 @@ import {
     outputTrunk,
     outputSubCenters,
     outputScaryPeakAlpha,
-    outputSubCentersShoulders, outputSixKPlusFour
+    outputSubCentersShoulders, outputSixKPlusFour,
+    outputSovereignTrunk
 } from "./math.templates";
-import {generateCollatzSequenceAdic} from "./math";
+import {} from "./math.templates/sovereign.trunk.ts";
 
 (async (): Promise<void> => {
     await onDocReady();
@@ -15,15 +16,9 @@ import {generateCollatzSequenceAdic} from "./math";
         parent: document.getElementById('pixiTarget'),
     });
 
-    // outputSubCentersShoulders();
-    // outputSubCenters();
-    // outputTrunk();
+    outputSovereignTrunk();
 
     // outputScaryPeakAlpha();
-
-    // outputSixKPlusFour(13);
-    // outputSixKPlusFour(1, 83);
-    outputSixKPlusFour(100, 100);
 
     // updateRenderer({
     //     sequence: generateCollatzSequenceAdic(240).sequence,

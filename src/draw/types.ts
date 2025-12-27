@@ -15,6 +15,7 @@ export interface CollatzRendererPixiData {
     app: Nullable<PIXI.Application>;
     grid: Nullable<PIXI.Graphics>;
     numberPath: Nullable<PIXI.Graphics>;
+    gridMeasurementMarks: Nullable<PIXI.Container>;
 }
 
 export interface CollatzRendererGridRibsConfig {

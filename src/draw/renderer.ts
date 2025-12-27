@@ -1,5 +1,5 @@
 import type {
-    CollatzRendererGridData,
+    CollatzRendererGridData, CollatzRendererGridRibsConfig,
     CollatzRendererInitialConfig, CollatzRendererPixiData,
     CollatzRendererUpdateConfig,
     ICollatzRenderer
@@ -14,12 +14,13 @@ const rendererPixi: CollatzRendererPixiData = {
     app: null,
     grid: null,
     numberPath: null,
+    gridMeasurementMarks: null,
 };
 
 const rendererGrid: CollatzRendererGridData = {
     scales: {
-        ribs: 0.25,
-        sequenceGrow: 4,
+        ribs: 1.75,
+        sequenceGrow: 17,
     },
     ribs: {
         twoPowN: {
@@ -78,10 +79,6 @@ export const updateRenderer = (config: CollatzRendererUpdateConfig): void => {
                 numberPath!.lineTo(array[index + 1].x, array[index + 1].y);
             }
         });
-
-    for (const position of path) {
-
-    }
 };
 
 const _createPixiApp = (parent: HTMLElement): void => {
@@ -114,19 +111,43 @@ const _createGrid = (): void => {
 
     rendererPixi.grid = new PIXI.Graphics();
     rendererPixi.numberPath = new PIXI.Graphics();
+    rendererPixi.gridMeasurementMarks = new PIXI.Container();
+
+    rendererPixi.grid.y = 15;
+    rendererPixi.numberPath.y = 15;
 
     const { grid } = rendererPixi;
 
     rendererPixi.app!.stage.addChild(grid!);
     rendererPixi.app!.stage.addChild(rendererPixi.numberPath!);
+    rendererPixi.app!.stage.addChild(rendererPixi.gridMeasurementMarks!);
 
     //
 
     grid!.lineStyle(1, ribs.twoPowN.color, ribs.twoPowN.alpha);
 
+    const drawGridLine = (value: number, ribsConfig: CollatzRendererGridRibsConfig): void => {
+        const x: number = value * scales.ribs;
+
+        const text: PIXI.Text = new PIXI.Text(`${value}`, {
+            fill: `#${ribsConfig.color.toString(16)}`,
+            fontSize: 10,
+        });
+
+        text.alpha = 0.5;
+
+        text.anchor.set(0.5, 0.5);
+        text.x = x;
+        text.y = 7;
+
+        grid!.moveTo(x, 0);
+        grid!.lineTo(x, 1_000);
+
+        rendererPixi.gridMeasurementMarks!.addChild(text);
+    };
+
     for (const value of ribs.twoPowN.values) {
-        grid!.moveTo(value * scales.ribs, 0);
-        grid!.lineTo(value * scales.ribs, 1_000);
+        drawGridLine(value, ribs.twoPowN);
     }
 
     //
@@ -134,8 +155,7 @@ const _createGrid = (): void => {
     grid!.lineStyle(1, ribs.threeExp.color, ribs.threeExp.alpha);
 
     for (const value of ribs.threeExp.values) {
-        grid!.moveTo(value * scales.ribs, 0);
-        grid!.lineTo(value * scales.ribs, 1_000);
+        drawGridLine(value, ribs.threeExp);
     }
 };
 
