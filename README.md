@@ -20,3 +20,14 @@
 
 #### Level sub center right
 ```7 * 2^(n - 2)```
+
+### We need to go deeper! There are shoulders of sub centers
+```
+9 * 2^(n - 3)
+
+11 * 2^(n - 3)
+
+13 * 2^(n - 3)
+
+15 * 2^(n - 3)
+```
