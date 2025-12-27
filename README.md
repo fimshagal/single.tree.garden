@@ -7,10 +7,16 @@
 ```n * 3 + 1```
 
 ### Stage | Level
-```2^n < 3 * 2^(n - 1) < 2^(n + 1)```
+```2^n < 5 * 2^(n - 2) < 3 * 2^(n - 1) < 7 * 2^(n - 2) < 2^(n + 1)```
 
 #### Trunk 2 | Level bounds | Trunk
 ```2^n```
 
 #### Trunk 3 | Level center | Trunk's shadow 
 ```3 * 2^(n - 1)```
+
+#### Level sub center left
+```5 * 2^(n - 2)```
+
+#### Level sub center right
+```7 * 2^(n - 2)```
