@@ -1,3 +1,12 @@
+# Single Tree Garden
+
+This project is a sandbox to investigate numeric sequences with Collatz approach  
+Right now there are math module and renderer to visualize sequences
+
+Also there are several math-renderer templates you can check
+
+![cover.jpg](cover.jpg)
+
 # Voc
 
 ### Divisor
