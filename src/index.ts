@@ -50,7 +50,12 @@ import {generateCollatzSequenceAdic} from "./math";
     });
 
     updateRenderer({
-        sequence: generateCollatzSequenceAdic(16063, {}, {mode: "oddOnly"}).sequence,
+        sequence: generateCollatzSequenceAdic(54).sequence,
+        color: 0xa122a0,
+    });
+
+    updateRenderer({
+        sequence: generateCollatzSequenceAdic(16063).sequence,
         color: 0xff0000,
     });
 
