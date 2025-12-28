@@ -7,6 +7,9 @@ Also there are several math-renderer templates you can check
 
 ![cover.jpg](cover.jpg)
 
+# 2^n range map
+https://docs.google.com/spreadsheets/d/17jU83jzSQKEa2sGPhccmfFHUVWyQfFCaViftizSYQhM/edit?usp=sharing
+
 # Voc
 
 ### Divisor
