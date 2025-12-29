@@ -19,11 +19,17 @@ type StoppedBecause = "cycleDetected" | "maxStepsReached" | "nonFiniteOrNegative
 
 export type TraceMode = "full" | "oddOnly";
 
+export interface VProfile {
+    v2: number;
+    v3: number;
+}
+
 export type AdicDebug = {
     mode: TraceMode;
 
     // 2-adic profile: on each odd-step we record k = v2(q*n + t)
     kProfile: number[];
+    vProfile: VProfile[];
 
     // residues: n mod 2^b for each step (optional, can be heavy)
     residues?: number[][]; // residues[bIndex][step] = residue

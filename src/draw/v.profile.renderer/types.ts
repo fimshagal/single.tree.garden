@@ -1,12 +1,13 @@
 import type {Nullable} from "../../misc";
 import * as PIXI from "pixi.js";
+import type {VProfile} from "../../math";
 
 export interface CollatzRendererInitialConfig {
     parent?: HTMLElement;
 }
 
 export interface CollatzRendererUpdateConfig {
-    sequence: number[];
+    sequence: VProfile[];
     color?: number;
     clearBefore?: boolean;
 }
