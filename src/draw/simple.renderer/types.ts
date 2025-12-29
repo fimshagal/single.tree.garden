@@ -1,4 +1,4 @@
-import type {Nullable} from "../misc";
+import type {Nullable} from "../../misc";
 import * as PIXI from "pixi.js";
 
 export interface CollatzRendererInitialConfig {

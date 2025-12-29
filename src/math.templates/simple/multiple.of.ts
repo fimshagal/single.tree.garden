@@ -1,6 +1,6 @@
-import type {CollatzRendererUpdateConfig} from "../draw";
-import {updateRenderer} from "../draw";
-import {generateCollatzSequenceAdic} from "../math";
+import type {CollatzRendererUpdateConfig} from "../../draw/simple.renderer/types.ts";
+import {updateRenderer} from "../../draw/simple.renderer";
+import {generateCollatzSequenceAdic} from "../../math";
 
 export const outputMultipleOf = (multiplier?: number, from?: number, to?: number, updateHandler?: (config: CollatzRendererUpdateConfig) => void): void => {
     multiplier = multiplier ?? 1;

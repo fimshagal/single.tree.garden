@@ -22,6 +22,15 @@ const v2Safe = (x: number): number => {
     return k;
 };
 
+const v3 = (x: number): number => {
+    let k = 0;
+    while (x % 3 === 0) {
+        x = x / 3;
+        k++;
+    }
+    return k;
+};
+
 /** One FULL generalized Collatz step (your current behavior). */
 const collatzStepFull = (n: number, d: number, q: number, t: number): number => {
     return n % d === 0 ? n / d : q * n + t;
@@ -92,6 +101,8 @@ export const generateCollatzSequenceAdic = (
         ? residueBits.map(() => [])
         : undefined;
 
+    const vProfile: { v2: number, v3: number }[] = trackAdic ? [] : [];
+
     const seen = new Map<string, number>(); // key -> index in seq
     const makeResidueKey = (n: number) =>
         residueBits
@@ -103,10 +114,20 @@ export const generateCollatzSequenceAdic = (
 
     const pushResidues = (n: number) => {
         if (!residues) return;
+
         for (let i = 0; i < residueBits.length; i++) {
             const mod = 2 ** residueBits[i];
             residues[i].push(n % mod);
         }
+    };
+
+    const pushValuations = (n: number) => {
+        if (!trackAdic) return;
+
+        vProfile.push({
+            v2: v2Safe(n),
+            v3: v3(n),
+        });
     };
 
     let cycleByState: AdicDebug["cycleByState"] = null;
@@ -121,6 +142,7 @@ export const generateCollatzSequenceAdic = (
 
     // init residues AFTER normalization (avoid pushing startValue twice / inconsistently)
     pushResidues(seq[0]);
+    pushValuations(seq[0]);
 
     // seed "state cycle" detection AFTER normalization
     if (stopOnStateCycle) {
@@ -149,13 +171,14 @@ export const generateCollatzSequenceAdic = (
                 steps,
                 stoppedBecause: "nonFiniteOrNegative",
                 detectedCycle: null,
-                adic: trackAdic ? { mode, kProfile, residues, cycleByState } : undefined,
+                adic: trackAdic ? { mode, kProfile, residues, cycleByState, vProfile } : undefined,
             };
         }
 
         current = next;
         seq.push(current);
         pushResidues(current);
+        pushValuations(current);
 
         if (stopOnStateCycle) {
             const key =
@@ -172,7 +195,7 @@ export const generateCollatzSequenceAdic = (
                     steps: steps + 1,
                     stoppedBecause: "cycleDetected",
                     detectedCycle,
-                    adic: trackAdic ? { mode, kProfile, residues, cycleByState } : undefined,
+                    adic: trackAdic ? { mode, kProfile, residues, cycleByState, vProfile } : undefined,
                 };
             }
         }
@@ -183,6 +206,6 @@ export const generateCollatzSequenceAdic = (
         steps: maxSteps,
         stoppedBecause: "maxStepsReached",
         detectedCycle: null,
-        adic: trackAdic ? { mode, kProfile, residues, cycleByState } : undefined,
+        adic: trackAdic ? { mode, kProfile, residues, cycleByState, vProfile } : undefined,
     };
 };

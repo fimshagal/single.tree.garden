@@ -1,13 +1,12 @@
 import {onDocReady} from "./misc/on.doc.ready.ts";
-import {initRenderer, updateRenderer} from "./draw";
+import {initRenderer, updateRenderer} from "./draw/simple.renderer";
 import {
     outputTrunk,
     outputSubCenters,
     outputScaryPeakAlpha,
     outputSubCentersShoulders, outputSixKPlusFour,
     outputSovereignTrunk
-} from "./math.templates";
-import {} from "./math.templates/sovereign.trunk.ts";
+} from "./math.templates/simple";
 import {generateCollatzSequenceAdic} from "./math";
 
 (async (): Promise<void> => {
@@ -16,6 +15,8 @@ import {generateCollatzSequenceAdic} from "./math";
     initRenderer({
         parent: document.getElementById('pixiTarget'),
     });
+
+    console.log(generateCollatzSequenceAdic(6, {}, { trackAdic: true }));
 
     // outputSovereignTrunk();
 
