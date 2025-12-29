@@ -1,4 +1,4 @@
-import type {AdicDebug, CollatzParams, CollatzResult, TraceMode} from "./types.ts";
+import type {AdicDebug, CollatzParams, CollatzResult, TraceMode, VProfile} from "./types.ts";
 import type {Nullable} from "../misc";
 import {typeOf} from "../misc";
 
@@ -207,5 +207,12 @@ export const generateCollatzSequenceAdic = (
         stoppedBecause: "maxStepsReached",
         detectedCycle: null,
         adic: trackAdic ? { mode, kProfile, residues, cycleByState, vProfile } : undefined,
+    };
+};
+
+export const getVProfile = (n: number): VProfile => {
+    return {
+        v2: v2Safe(n),
+        v3: v3(n)
     };
 };

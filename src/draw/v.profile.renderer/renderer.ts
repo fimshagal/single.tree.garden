@@ -28,8 +28,8 @@ const rendererPixi: CollatzRendererPixiData = {
 const rendererGrid: CollatzRendererGridData = {
     scales: {
         // pixels per 1 unit along axes:
-        ribs: 15,          // X scale (v2)
-        sequenceGrow: 50,  // Y scale (v3)
+        ribs: 70,          // X scale (v2)
+        sequenceGrow: 70,  // Y scale (v3)
     },
     ribs: {
         twoPowN: {
@@ -73,7 +73,9 @@ export const updateRenderer = (config: CollatzRendererUpdateConfig): void => {
     }
 
     const {numberPath} = rendererPixi;
-    const color: number = _resolveColor((config as unknown as { color?: unknown }).color);
+    const rawColor = (config as unknown as { color?: unknown }).color;
+    const hasExternalColor = typeof rawColor !== "undefined";
+    const color: number = _resolveColor(rawColor);
 
     if (config.clearBefore) {
         numberPath!.clear();
@@ -85,14 +87,33 @@ export const updateRenderer = (config: CollatzRendererUpdateConfig): void => {
 
     const pixiPath: PIXI.Point[] = plot.data.map(_toPixiPoint);
 
-    // Draw as points (scatter), not a connected curve.
     const radius = 5;
-    numberPath!.beginFill(color, 0.95);
-    for (const p of pixiPath) {
-        if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-        numberPath!.drawCircle(p.x, p.y, radius);
+
+    // Draw as points (scatter).
+    // If no external color is provided, use heat-map coloring by node density:
+    // most frequent node -> warmer/whiter, single-hit -> more purple.
+    if (hasExternalColor) {
+        numberPath!.beginFill(color, 0.95);
+        for (const p of pixiPath) {
+            if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+            numberPath!.drawCircle(p.x, p.y, radius);
+        }
+        numberPath!.endFill();
+        return;
     }
-    numberPath!.endFill();
+
+    const nodes = _aggregateNodes(plot.data);
+    const maxCount = nodes.reduce((m, n) => Math.max(m, n.count), 1);
+
+    for (const node of nodes) {
+        const p = _toPixiPoint(new PIXI.Point(node.x, node.y));
+        if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+
+        const nodeColor = _heatColor(node.count, maxCount);
+        numberPath!.beginFill(nodeColor, 0.95);
+        numberPath!.drawCircle(p.x, p.y, radius);
+        numberPath!.endFill();
+    }
 };
 
 const _resolveColor = (value: unknown): number => {
@@ -113,6 +134,97 @@ const _resolveColor = (value: unknown): number => {
     }
 
     return _getRandomColor();
+};
+
+type NodeCount = { x: number; y: number; count: number };
+
+const _keyForPoint = (p: PIXI.Point): string => {
+    // vProfile is integer-valued, but keep this robust.
+    const x = Number.isInteger(p.x) ? `${p.x}` : p.x.toFixed(6);
+    const y = Number.isInteger(p.y) ? `${p.y}` : p.y.toFixed(6);
+    return `${x}|${y}`;
+};
+
+const _aggregateNodes = (points: PIXI.Point[]): NodeCount[] => {
+    const map = new Map<string, NodeCount>();
+
+    for (const p of points) {
+        if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+
+        const key = _keyForPoint(p);
+        const prev = map.get(key);
+        if (prev) {
+            prev.count++;
+        } else {
+            map.set(key, { x: p.x, y: p.y, count: 1 });
+        }
+    }
+
+    return [...map.values()];
+};
+
+const _lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+
+const _lerpColor = (c1: number, c2: number, t: number): number => {
+    const r1 = (c1 >> 16) & 0xff;
+    const g1 = (c1 >> 8) & 0xff;
+    const b1 = c1 & 0xff;
+    const r2 = (c2 >> 16) & 0xff;
+    const g2 = (c2 >> 8) & 0xff;
+    const b2 = c2 & 0xff;
+
+    const r = Math.round(_lerp(r1, r2, t));
+    const g = Math.round(_lerp(g1, g2, t));
+    const b = Math.round(_lerp(b1, b2, t));
+    return (r << 16) | (g << 8) | b;
+};
+
+const _heatRamp01 = (t: number): number => {
+    // Wider ramp: deep purple -> purple -> magenta -> red -> orange -> yellow
+    // (No white here; white is handled separately by absolute hit threshold.)
+    const stops = [
+        0x3b00ff, // deep purple
+        0x6a00ff, // purple
+        0xb000ff, // violet
+        0xff0080, // magenta
+        0xff0030, // red-ish
+        0xff4d00, // orange-red
+        0xff9a00, // orange
+        0xffd000, // yellow
+    ];
+    const n = stops.length - 1;
+    const x = Math.min(1, Math.max(0, t)) * n;
+    const i = Math.min(n - 1, Math.floor(x));
+    const localT = x - i;
+    return _lerpColor(stops[i], stops[i + 1], localT);
+};
+
+const _heatColor = (count: number, maxCount: number): number => {
+    // Heat is based on ABSOLUTE node hit-count (not relative-to-max),
+    // so tiny sequences (like start=2) cannot produce yellow/white just because they're the "max".
+    // Desired behavior:
+    // - count=1 -> purple
+    // - count~20 -> yellow-ish
+    // - count~200 -> white-ish
+    void maxCount; // keep signature stable; not used by design.
+
+    const c = Math.max(1, Math.floor(count));
+
+    const YELLOW_AT = 20;
+    const WHITE_AT = 200;
+
+    if (c <= 1) return 0x6a00ff;
+
+    if (c < YELLOW_AT) {
+        // 1..20 mapped to 0..1 with log, then slowed a bit for wider low-end gradation
+        const t = Math.log(c) / Math.log(YELLOW_AT);
+        const widened = Math.pow(t, 1.35);
+        return _heatRamp01(widened);
+    }
+
+    // 20..200: yellow -> white (log scale)
+    const t2 = Math.min(1, Math.log(c / YELLOW_AT) / Math.log(WHITE_AT / YELLOW_AT));
+    return _lerpColor(0xffd000, 0xffffff, t2);
 };
 
 const _createPixiApp = (parent: HTMLElement): void => {
