@@ -32,11 +32,16 @@ const v3 = (x: number): number => {
 };
 
 const z3ChainDepth = (n: number): number => {
-    let current: number = n;
-    let count: number = 0;
+    let current = n;
+    let count = 0;
 
-    while ((current - 1) % 3 === 0) {
-        current = (current - 1) / 3;
+    while (current > 1 && (current - 1) % 3 === 0) {
+        const next = (current - 1) / 3;
+
+        // дозволяємо тільки додатні цілі значення
+        if (next < 1) break;
+
+        current = next;
         count++;
     }
 

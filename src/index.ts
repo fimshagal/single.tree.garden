@@ -13,11 +13,13 @@ import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
 (async (): Promise<void> => {
     await onDocReady();
 
+    const collatzSeq = generateCollatzSequenceAdic(27, {}, { trackAdic: true }).adic.vProfile;
+
     createCollatzPhaseRenderer(
         document.getElementById('threeCanvas') as HTMLCanvasElement,
-        generateCollatzSequenceAdic(13255, {}, { trackAdic: true }).adic.vProfile,
+        collatzSeq,
         {
-            pointSize: 0.5,
+            pointSize: 0.15,
             axisScale: 10,
             backgroundColor: 0x020304,
             maxColorSteps: 15
