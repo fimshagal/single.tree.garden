@@ -39,22 +39,22 @@ import {generateCollatzSequenceAdic, getVProfile} from "./math";
 
     updateRenderer({
         sequence: [
-            // getVProfile(32),
-            // getVProfile(40),
-            // getVProfile(48),
-            // getVProfile(56),
-            // getVProfile(64),
-
+            getVProfile(32),
+            getVProfile(40),
+            getVProfile(48),
+            getVProfile(56),
             getVProfile(64),
-            getVProfile(80),
-            getVProfile(96),
-            getVProfile(112),
-            getVProfile(128)
+    //
+    //         getVProfile(64),
+    //         getVProfile(80),
+    //         getVProfile(96),
+    //         getVProfile(112),
+    //         getVProfile(128)
         ],
     });
 
     // updateRenderer({
-    //     sequence: generateCollatzSequenceAdic(2, {}, { trackAdic: true }).adic.vProfile,
+    //     sequence: generateCollatzSequenceAdic(54, {}, { trackAdic: true }).adic.vProfile,
     // });
 
     // outputScaryPeakAlpha();

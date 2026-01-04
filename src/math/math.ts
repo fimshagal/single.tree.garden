@@ -23,12 +23,24 @@ const v2Safe = (x: number): number => {
 };
 
 const v3 = (x: number): number => {
-    let k = 0;
+    let k: number = 0;
     while (x % 3 === 0) {
         x = x / 3;
         k++;
     }
     return k;
+};
+
+const z3ChainDepth = (n: number): number => {
+    let current: number = n;
+    let count: number = 0;
+
+    while ((current - 1) % 3 === 0) {
+        current = (current - 1) / 3;
+        count++;
+    }
+
+    return count;
 };
 
 /** One FULL generalized Collatz step (your current behavior). */
@@ -101,7 +113,7 @@ export const generateCollatzSequenceAdic = (
         ? residueBits.map(() => [])
         : undefined;
 
-    const vProfile: { v2: number, v3: number }[] = trackAdic ? [] : [];
+    const vProfile: VProfile[] = trackAdic ? [] : [];
 
     const seen = new Map<string, number>(); // key -> index in seq
     const makeResidueKey = (n: number) =>
@@ -127,6 +139,7 @@ export const generateCollatzSequenceAdic = (
         vProfile.push({
             v2: v2Safe(n),
             v3: v3(n),
+            z3ChainDepth: z3ChainDepth(n)
         });
     };
 
@@ -213,6 +226,7 @@ export const generateCollatzSequenceAdic = (
 export const getVProfile = (n: number): VProfile => {
     return {
         v2: v2Safe(n),
-        v3: v3(n)
+        v3: v3(n),
+        z3ChainDepth: z3ChainDepth(n)
     };
 };

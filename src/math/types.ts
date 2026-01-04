@@ -22,6 +22,7 @@ export type TraceMode = "full" | "oddOnly";
 export interface VProfile {
     v2: number;
     v3: number;
+    z3ChainDepth: number;
 }
 
 export type AdicDebug = {
