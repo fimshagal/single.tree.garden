@@ -33,7 +33,7 @@ export function createCollatzPhaseRenderer(
     options: CollatzPhaseRendererOptions = {}
 ): () => void {
     const {
-        pointSize = 0.12,
+        pointSize = 1,
         axisScale = 10,
         backgroundColor = 0x050509,
         maxColorSteps = 15,
@@ -44,7 +44,7 @@ export function createCollatzPhaseRenderer(
 
     const camera = new THREE.PerspectiveCamera(
         60,
-        canvas.clientWidth / canvas.clientHeight,
+        window.innerWidth / window.innerHeight,
         0.1,
         1000
     );
@@ -70,7 +70,7 @@ export function createCollatzPhaseRenderer(
     // масштаби по ν2, ν3, z
     const maxV2 = aggregated.reduce((m, p) => Math.max(m, p.v2), 0) || 1;
     const maxV3 = aggregated.reduce((m, p) => Math.max(m, p.v3), 0) || 1;
-    const maxZ  = aggregated.reduce((m, p) => Math.max(m, p.z), 0)  || 1;
+    const maxZ  = aggregated.reduce((m, p) => Math.max(m, p.zDepth), 0)  || 1;
 
     const halfScaleX = axisScale;
     const halfScaleY = axisScale;
@@ -90,7 +90,7 @@ export function createCollatzPhaseRenderer(
         for (const p of aggregated) {
             const nx = maxV2 ? p.v2 / maxV2 : 0;
             const ny = maxV3 ? p.v3 / maxV3 : 0;
-            const nz = maxZ  ? p.z  / maxZ  : 0;
+            const nz = maxZ  ? p.zDepth  / maxZ  : 0;
 
             const x = (nx - 0.5) * 2 * halfScaleX;
             const y = (ny - 0.5) * 2 * halfScaleY;
@@ -140,8 +140,8 @@ export function createCollatzPhaseRenderer(
 
     const onResize = () => {
         if (stopped) return;
-        const width = canvas.clientWidth;
-        const height = canvas.clientHeight;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
         if (!width || !height) return;
 
         camera.aspect = width / height;
