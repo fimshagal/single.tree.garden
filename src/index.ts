@@ -15,6 +15,35 @@ import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
 
     const collatzSeq = generateCollatzSequenceAdic(27, {}, { trackAdic: true }).adic.vProfile;
 
+    const fibSeq = (() => {
+        const seq = [];
+        let a = 1, b = 1;
+        for (let i = 0; i < 90; i++) {
+            seq.push(getVProfile(a));
+            const next = a + b;
+            a = b;
+            b = next;
+        }
+        return seq;
+    })();
+
+    const primesSeq = (() => {
+        const seq = [];
+        const isPrime = (n: number) => {
+            if (n < 2) return false;
+            for (let i = 2; i <= Math.sqrt(n); i++) {
+                if (n % i === 0) return false;
+            }
+            return true;
+        };
+        let n = 2;
+        while (seq.length < 500) {
+            if (isPrime(n)) seq.push(getVProfile(n));
+            n++;
+        }
+        return seq;
+    })();
+
     createCollatzPhaseRenderer(
         document.getElementById('threeCanvas') as HTMLCanvasElement,
         collatzSeq,
