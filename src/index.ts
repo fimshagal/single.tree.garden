@@ -13,9 +13,9 @@ import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
 (async (): Promise<void> => {
     await onDocReady();
 
-    const collatzSeq = generateCollatzSequenceAdic(171, {
+    const collatzSeq= generateCollatzSequenceAdic(33111071, {
         multiplier: 7,
-        increment: -5
+        increment: -13,
     }, { trackAdic: true }).adic.vProfile;
 
     const fibSeq = (() => {
@@ -40,7 +40,7 @@ import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
             return true;
         };
         let n = 2;
-        while (seq.length < 500) {
+        while (seq.length < 1500) {
             if (isPrime(n)) seq.push(getVProfile(n));
             n++;
         }
@@ -93,7 +93,7 @@ import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
     const stupidSeq = (() => {
         const seq = [];
 
-        for (let i = 1; i < 1001; i++) {
+        for (let i = 1; i < 13; i++) {
             seq.push(getVProfile(i));
         }
 
@@ -107,7 +107,9 @@ import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
             pointSize: 0.15,
             axisScale: 10,
             backgroundColor: 0x020304,
-            maxColorSteps: 15
+            maxColorSteps: 15,
+            showTrajectory: true,
+            trajectoryOpacity: 0.75,
         });
     // initRenderer({
     //     parent: document.getElementById('pixiTarget'),

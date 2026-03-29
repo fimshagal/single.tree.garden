@@ -12,6 +12,9 @@ export interface CollatzPhaseRendererOptions {
     tickStep?: number;      // крок поділок (за замовч. 1 = кожне ціле число)
     labelEvery?: number;    // як часто підписувати поділки (за замовч. = tickStep)
     palette?: "purpleToWhite" | "turbo";
+    showTrajectory?: boolean;
+    trajectoryOpacity?: number;
+    trajectoryWidth?: number;
 }
 
 function setTurboColor(t: number, out: THREE.Color) {
@@ -142,6 +145,9 @@ export function createCollatzPhaseRenderer(
         tickStep = 1,
         labelEvery,
         palette = "purpleToWhite",
+        showTrajectory = false,
+        trajectoryOpacity = 0.6,
+        trajectoryWidth = 1,
     } = options;
 
     // If the canvas has no CSS size, it defaults to 300x150 and the plot will feel "off".
@@ -270,6 +276,44 @@ export function createCollatzPhaseRenderer(
         mesh.instanceMatrix.needsUpdate = true;
 
         scene.add(mesh);
+    }
+
+    if (showTrajectory && points.length >= 2) {
+        const positions = new Float32Array(points.length * 3);
+        const colors = new Float32Array(points.length * 3);
+        const color = new THREE.Color();
+
+        for (let i = 0; i < points.length; i++) {
+            const p = points[i];
+            positions[i * 3]     = p.v2;
+            positions[i * 3 + 1] = p.v3;
+            positions[i * 3 + 2] = p.z3ChainDepth;
+
+            const t = points.length > 1 ? i / (points.length - 1) : 0;
+            if (palette === "turbo") {
+                setTurboColor(t, color);
+                color.convertSRGBToLinear();
+            } else {
+                setPurpleToWhiteColor(t, color);
+            }
+            colors[i * 3]     = color.r;
+            colors[i * 3 + 1] = color.g;
+            colors[i * 3 + 2] = color.b;
+        }
+
+        const lineGeom = new THREE.BufferGeometry();
+        lineGeom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+        lineGeom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+
+        const lineMat = new THREE.LineBasicMaterial({
+            vertexColors: true,
+            transparent: true,
+            opacity: trajectoryOpacity,
+            linewidth: trajectoryWidth,
+            toneMapped: false,
+        });
+
+        scene.add(new THREE.Line(lineGeom, lineMat));
     }
 
     let stopped = false;
