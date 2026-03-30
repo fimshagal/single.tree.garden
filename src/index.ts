@@ -9,6 +9,7 @@ import {
 } from "./math.templates/simple";
 import {generateCollatzSequenceAdic, getVProfile} from "./math";
 import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
+import {createBinaryWalkRenderer} from "./draw/binary.walk.renderer";
 
 (async (): Promise<void> => {
     await onDocReady();
@@ -100,7 +101,7 @@ import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
         return seq;
     })();
 
-    createCollatzPhaseRenderer(
+    /* createCollatzPhaseRenderer(
         document.getElementById('threeCanvas') as HTMLCanvasElement,
         collatzSeq,
         {
@@ -110,7 +111,24 @@ import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
             maxColorSteps: 15,
             showTrajectory: true,
             trajectoryOpacity: 0.75,
+        }); */
+
+    const oddOnlyResult = generateCollatzSequenceAdic(151713, {
+        multiplier: 3,
+        increment: -3
+    }, {
+        mode: "oddOnly",
+        maxSteps: 200_000,
+    });
+
+    createBinaryWalkRenderer(
+        document.getElementById('pixiTarget')!,
+        oddOnlyResult.sequence,
+        {
+            stepLength: 1,
+            useGradient: true,
         });
+
     // initRenderer({
     //     parent: document.getElementById('pixiTarget'),
     // });
