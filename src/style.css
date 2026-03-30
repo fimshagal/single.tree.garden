@@ -1,8 +1,4 @@
 @import url('css/reset.css');
 @import url('css/pixi.target.css');
-
-#threeCanvas {
-    width: 100vw;
-    height: 50vh;
-    display: block;
-}
+@import url('css/wrapper.css');
+@import url('css/three.canvas.css');

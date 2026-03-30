@@ -10,6 +10,7 @@ import {
 import {generateCollatzSequenceAdic, getVProfile} from "./math";
 import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
 import {createBinaryWalkRenderer} from "./draw/binary.walk.renderer";
+import {createCollatzFractalRenderer} from "./draw/collatz.fractal.renderer";
 
 (async (): Promise<void> => {
     await onDocReady();
@@ -113,20 +114,34 @@ import {createBinaryWalkRenderer} from "./draw/binary.walk.renderer";
             trajectoryOpacity: 0.75,
         }); */
 
-    const oddOnlyResult = generateCollatzSequenceAdic(151713, {
+    const oddOnlyResult = generateCollatzSequenceAdic(31, {
         multiplier: 3,
-        increment: -3
+        increment: 1
     }, {
         mode: "oddOnly",
         maxSteps: 200_000,
     });
 
-    createBinaryWalkRenderer(
+    // createBinaryWalkRenderer(
+    //     document.getElementById('pixiTarget')!,
+    //     oddOnlyResult.sequence,
+    //     {
+    //         stepLength: 1,
+    //         useGradient: true,
+    //     });
+
+    createCollatzFractalRenderer(
         document.getElementById('pixiTarget')!,
         oddOnlyResult.sequence,
         {
-            stepLength: 1,
-            useGradient: true,
+            maxIter: 128,
+            zoomSpeed: 0.15,
+            colorSpeed: 0.08,
+            morphSpeed: 0.5,
+            morphRadius: 0.3,
+            initialZoom: 6.0,
+            initialCenter: [-0.2, 0.0],
+            zoomTarget: [-0.2, 0.65],
         });
 
     // initRenderer({
