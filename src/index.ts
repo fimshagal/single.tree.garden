@@ -116,7 +116,7 @@ import {createCollatzFractalRenderer} from "./draw/collatz.fractal.renderer";
 
     const oddOnlyResult = generateCollatzSequenceAdic(31, {
         multiplier: 3,
-        increment: 1
+        increment: -3
     }, {
         mode: "oddOnly",
         maxSteps: 200_000,
@@ -140,8 +140,6 @@ import {createCollatzFractalRenderer} from "./draw/collatz.fractal.renderer";
             morphSpeed: 0.5,
             morphRadius: 0.3,
             initialZoom: 6.0,
-            initialCenter: [-0.2, 0.0],
-            zoomTarget: [-0.2, 0.65],
         });
 
     // initRenderer({

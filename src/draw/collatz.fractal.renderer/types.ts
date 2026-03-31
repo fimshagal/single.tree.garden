@@ -6,6 +6,5 @@ export interface CollatzFractalRendererOptions {
     morphRadius?: number;
     initialCenter?: [number, number];
     initialZoom?: number;
-    zoomTarget?: [number, number];
     backgroundColor?: number;
 }
