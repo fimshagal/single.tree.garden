@@ -7,13 +7,14 @@ import {
     outputSubCentersShoulders, outputSixKPlusFour,
     outputSovereignTrunk
 } from "./math.templates/simple";
-import {generateCollatzSequenceAdic, getVProfile} from "./math";
+import {generateCollatzSequenceAdic, getVProfile, buildPower2Graph} from "./math";
 import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
 import {createBinaryWalkRenderer} from "./draw/binary.walk.renderer";
 import {createCollatzFractalRenderer} from "./draw/collatz.fractal.renderer";
 import {createCollatzFractal3DRenderer} from "./draw/collatz.fractal.3d.renderer";
 import {createExp2FractalRenderer} from "./draw/exp2.fractal.renderer";
 import {createCollatzBrotRenderer} from "./draw/collatz.brot.renderer";
+import {createRadialMapRenderer} from "./draw/radial.map.renderer";
 
 (async (): Promise<void> => {
     await onDocReady();
@@ -194,14 +195,38 @@ import {createCollatzBrotRenderer} from "./draw/collatz.brot.renderer";
     //         initialZoom: 3.0,
     //     });
 
-    createCollatzBrotRenderer(
+    // createCollatzBrotRenderer(
+    //     document.getElementById('pixiTarget')!,
+    //     {
+    //         maxIter: 120,
+    //         epsilon: 0.06,
+    //         zoomSpeed: 0.25,
+    //         colorSpeed: 1,
+    //         initialZoom: 4.0,
+    //     });
+
+    const power2Graph = buildPower2Graph({
+        minZone: 2,
+        maxZone: 14,
+        maxInverseDepth: 20,
+        maxNodes: 35_000,
+        forwardFill: true,
+        forwardFillMaxZone: 13,
+    });
+
+    console.log(
+        `Power2Graph: ${power2Graph.nodes.size} nodes, ${power2Graph.edges.length} edges`,
+        power2Graph.zones.map(z => `zone ${z.n}: ${(z.coverage * 100).toFixed(1)}%`),
+    );
+
+    createRadialMapRenderer(
         document.getElementById('pixiTarget')!,
+        power2Graph,
         {
-            maxIter: 120,
-            epsilon: 0.06,
-            zoomSpeed: 0.25,
-            colorSpeed: 1,
-            initialZoom: 4.0,
+            ringSpacing: 42,
+            innerRadius: 30,
+            edgeOpacity: 0.12,
+            showDiv2Edges: false,
         });
 
     // initRenderer({
