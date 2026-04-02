@@ -11,6 +11,8 @@ import {generateCollatzSequenceAdic, getVProfile} from "./math";
 import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
 import {createBinaryWalkRenderer} from "./draw/binary.walk.renderer";
 import {createCollatzFractalRenderer} from "./draw/collatz.fractal.renderer";
+import {createCollatzFractal3DRenderer} from "./draw/collatz.fractal.3d.renderer";
+import {createExp2FractalRenderer} from "./draw/exp2.fractal.renderer";
 
 (async (): Promise<void> => {
     await onDocReady();
@@ -115,7 +117,7 @@ import {createCollatzFractalRenderer} from "./draw/collatz.fractal.renderer";
         }); */
 
     const oddOnlyResult = generateCollatzSequenceAdic(31, {
-        multiplier: 3,
+        multiplier: 5,
         increment: -3
     }, {
         mode: "oddOnly",
@@ -130,16 +132,65 @@ import {createCollatzFractalRenderer} from "./draw/collatz.fractal.renderer";
     //         useGradient: true,
     //     });
 
-    createCollatzFractalRenderer(
+    // createCollatzFractalRenderer(
+    //     document.getElementById('pixiTarget')!,
+    //     oddOnlyResult.sequence,
+    //     {
+    //         maxIter: 128,
+    //         zoomSpeed: 0.15,
+    //         colorSpeed: 0.08,
+    //         morphSpeed: 0.5,
+    //         morphRadius: 0.3,
+    //         initialZoom: 6.0,
+    //     });
+
+    // createCollatzFractal3DRenderer(
+    //     document.getElementById('threeCanvas') as HTMLCanvasElement,
+    //     oddOnlyResult.sequence, //oddOnlyResult.sequence,
+    //     {
+    //         maxIter: 128,
+    //         zoomSpeed: 0.03,
+    //         colorSpeed: 0.06,
+    //         morphSpeed: 0.7,
+    //         morphRadius: 1,
+    //         orbitSpeed: 0.08,
+    //         zScale: 0.8,
+    //     });
+
+    const pow2Seq = (() => {
+        const seq: number[] = [];
+        for (let n = 2; n <= 20; n++) {
+            const lo = 2 ** n;
+            const hi = 2 ** (n + 1);
+            const mid = 3 * 2 ** (n - 1);
+
+            seq.push(lo);
+            seq.push(mid);
+
+            if (n >= 4) {
+                seq.push(5 * 2 ** (n - 2));
+                seq.push(7 * 2 ** (n - 2));
+            }
+
+            const oddLo = lo + 1;
+            const oddHi = hi - 1;
+            let rndOdd = oddLo + Math.floor(Math.random() * (oddHi - oddLo));
+            if (rndOdd % 2 === 0) rndOdd++;
+            if (rndOdd <= oddHi) seq.push(rndOdd);
+        }
+        return seq.sort((a, b) => a - b);
+    })();
+
+    createExp2FractalRenderer(
         document.getElementById('pixiTarget')!,
-        oddOnlyResult.sequence,
+        pow2Seq,
         {
-            maxIter: 128,
-            zoomSpeed: 0.15,
-            colorSpeed: 0.08,
-            morphSpeed: 0.5,
-            morphRadius: 0.3,
-            initialZoom: 6.0,
+            maxIter: 100,
+            zoomSpeed: 0.2,
+            colorSpeed: 0.71,
+            morphSpeed: 0.2,
+            morphRadius: 0.4,
+            initialZoom: 3.0,
         });
 
     // initRenderer({
