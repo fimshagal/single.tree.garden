@@ -13,6 +13,7 @@ import {createBinaryWalkRenderer} from "./draw/binary.walk.renderer";
 import {createCollatzFractalRenderer} from "./draw/collatz.fractal.renderer";
 import {createCollatzFractal3DRenderer} from "./draw/collatz.fractal.3d.renderer";
 import {createExp2FractalRenderer} from "./draw/exp2.fractal.renderer";
+import {createCollatzBrotRenderer} from "./draw/collatz.brot.renderer";
 
 (async (): Promise<void> => {
     await onDocReady();
@@ -181,16 +182,26 @@ import {createExp2FractalRenderer} from "./draw/exp2.fractal.renderer";
         return seq.sort((a, b) => a - b);
     })();
 
-    createExp2FractalRenderer(
+    // createExp2FractalRenderer(
+    //     document.getElementById('pixiTarget')!,
+    //     pow2Seq,
+    //     {
+    //         maxIter: 100,
+    //         zoomSpeed: 0.2,
+    //         colorSpeed: 0.71,
+    //         morphSpeed: 0.2,
+    //         morphRadius: 0.4,
+    //         initialZoom: 3.0,
+    //     });
+
+    createCollatzBrotRenderer(
         document.getElementById('pixiTarget')!,
-        pow2Seq,
         {
-            maxIter: 100,
-            zoomSpeed: 0.2,
-            colorSpeed: 0.71,
-            morphSpeed: 0.2,
-            morphRadius: 0.4,
-            initialZoom: 3.0,
+            maxIter: 120,
+            epsilon: 0.06,
+            zoomSpeed: 0.25,
+            colorSpeed: 1,
+            initialZoom: 4.0,
         });
 
     // initRenderer({
