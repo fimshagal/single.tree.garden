@@ -209,12 +209,12 @@ import {createRadialMapRenderer} from "./draw/radial.map.renderer";
         graph: {
             minZone: 2,
             maxZone: 14,
-            maxInverseDepth: 20,
-            maxNodes: 35_000,
+            maxInverseDepth: 30,
+            maxNodes: 45_000,
             forwardFill: true,
-            forwardFillMaxZone: 13, // q
-            multiplier: 5,
-            increment: -3,
+            forwardFillMaxZone: 14, // q
+            multiplier: 3,
+            increment: 1,
         },
         ringSpacing: 42,
         innerRadius: 30,

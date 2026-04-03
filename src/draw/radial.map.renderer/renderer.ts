@@ -8,7 +8,7 @@ const sup = (n: number): string =>
     String(n).split('').map(d => SUPER[+d]).join('');
 
 const NODE_HEX: Record<Power2NodeType, number> = {
-    power2:     0xFFD700,
+    power2:     0xFF8C00,
     center:     0xEA3A13,
     subcenterL: 0x8EF213,
     subcenterR: 0x13BEF2,
