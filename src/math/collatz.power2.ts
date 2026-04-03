@@ -44,7 +44,6 @@ export const buildPower2Graph = (options: Power2BuildOptions = {}): Power2Graph 
         increment: w = 1,
     } = options;
     const fillMaxZone = forwardFillMaxZone ?? maxZone;
-    const isStandard = q === 3 && w === 1;
 
     const nodes = new Map<number, Power2Node>();
     const edges: Power2Edge[] = [];
@@ -65,18 +64,16 @@ export const buildPower2Graph = (options: Power2BuildOptions = {}): Power2Graph 
         const hi = 2 ** (n + 1);
         tryAdd(lo, 'power2', 0);
 
-        if (isStandard) {
-            const center = 3 * 2 ** (n - 1);
-            if (center > lo && center < hi) {
-                tryAdd(center, 'center', 0);
-            }
+        const center = 3 * 2 ** (n - 1);
+        if (center > lo && center < hi) {
+            tryAdd(center, 'center', 0);
+        }
 
-            if (n >= 2) {
-                const subL = 5 * 2 ** (n - 2);
-                const subR = 7 * 2 ** (n - 2);
-                if (subL > lo && subL < center) tryAdd(subL, 'subcenterL', 0);
-                if (subR > center && subR < hi) tryAdd(subR, 'subcenterR', 0);
-            }
+        if (n >= 2) {
+            const subL = 5 * 2 ** (n - 2);
+            const subR = 7 * 2 ** (n - 2);
+            if (subL > lo && subL < center) tryAdd(subL, 'subcenterL', 0);
+            if (subR > center && subR < hi) tryAdd(subR, 'subcenterR', 0);
         }
     }
 
@@ -104,10 +101,18 @@ export const buildPower2Graph = (options: Power2BuildOptions = {}): Power2Graph 
                 if (nodes.has(v)) continue;
 
                 const chain: number[] = [v];
+                const visited = new Set<number>([v]);
                 let cur = collatzStep(v, q, w);
-                while (cur > 0 && Number.isSafeInteger(cur) && !nodes.has(cur)) {
+                while (cur > 0 && Number.isSafeInteger(cur) && !nodes.has(cur) && !visited.has(cur)) {
                     chain.push(cur);
+                    visited.add(cur);
                     cur = collatzStep(cur, q, w);
+                }
+                if (!nodes.has(cur) && visited.has(cur)) {
+                    const z = getZone(cur);
+                    if (z >= minZone && z <= maxZone) {
+                        nodes.set(cur, { value: cur, zone: z, type: 'regular', depth: -1 });
+                    }
                 }
                 if (!nodes.has(cur)) continue;
 

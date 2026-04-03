@@ -121,7 +121,6 @@ function initScene(
 
     const q = graph.multiplier;
     const w = graph.increment;
-    const isStandard = q === 3 && w === 1;
     const minZone = graph.zones[0]?.n ?? 2;
     const ringR = (zone: number): number => innerRadius + (zone - minZone) * ringSpacing;
 
@@ -271,11 +270,9 @@ function initScene(
         const stepLabel = `${q}n${w >= 0 ? '+' : ''}${w} edge`;
         const entries: [number | string, string][] = [
             [NODE_HEX.power2,     '2ⁿ'],
-            ...(isStandard ? [
-                [NODE_HEX.center,     'center 3·2ⁿ⁻¹'],
-                [NODE_HEX.subcenterL, 'sub-L 5·2ⁿ⁻²'],
-                [NODE_HEX.subcenterR, 'sub-R 7·2ⁿ⁻²'],
-            ] as [number, string][] : []),
+            [NODE_HEX.center,     'center 3·2ⁿ⁻¹'],
+            [NODE_HEX.subcenterL, 'sub-L 5·2ⁿ⁻²'],
+            [NODE_HEX.subcenterR, 'sub-R 7·2ⁿ⁻²'],
             [NODE_HEX.regular,    'inverse BFS'],
             [FORWARD_FILL_HEX,    'forward fill'],
             [TRIPLE_EDGE_HEX,     stepLabel],
