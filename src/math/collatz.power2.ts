@@ -5,23 +5,25 @@ import type {
 
 export const getZone = (v: number): number => Math.floor(Math.log2(v));
 
-export const collatzStep = (n: number): number =>
-    n % 2 === 0 ? n / 2 : 3 * n + 1;
+export const collatzStep = (n: number, q: number = 3, w: number = 1): number =>
+    n % 2 === 0 ? n / 2 : q * n + w;
 
 /**
  * Inverse Collatz: all numbers that reach `m` in exactly one forward step.
  *  - 2m  always  (even rule: 2m → m)
- *  - (m-1)/3 when m ≡ 1 (mod 3) and (m-1)/3 is odd and positive (odd rule: k → 3k+1 = m)
+ *  - (m-w)/q when (m-w) is divisible by q and (m-w)/q is odd and positive
  */
 export const inversePredecessors = (
     m: number,
+    q: number = 3,
+    w: number = 1,
 ): { value: number; edgeType: 'div2' | 'triple' }[] => {
     const preds: { value: number; edgeType: 'div2' | 'triple' }[] = [];
 
     preds.push({ value: 2 * m, edgeType: 'div2' });
 
-    if ((m - 1) % 3 === 0) {
-        const k = (m - 1) / 3;
+    if ((m - w) % q === 0) {
+        const k = (m - w) / q;
         if (k > 0 && k % 2 === 1) {
             preds.push({ value: k, edgeType: 'triple' });
         }
@@ -38,8 +40,11 @@ export const buildPower2Graph = (options: Power2BuildOptions = {}): Power2Graph 
         maxNodes = 20_000,
         forwardFill = false,
         forwardFillMaxZone,
+        multiplier: q = 3,
+        increment: w = 1,
     } = options;
     const fillMaxZone = forwardFillMaxZone ?? maxZone;
+    const isStandard = q === 3 && w === 1;
 
     const nodes = new Map<number, Power2Node>();
     const edges: Power2Edge[] = [];
@@ -57,18 +62,21 @@ export const buildPower2Graph = (options: Power2BuildOptions = {}): Power2Graph 
     /* ── seeds ── */
     for (let n = minZone; n <= maxZone; n++) {
         const lo = 2 ** n;
+        const hi = 2 ** (n + 1);
         tryAdd(lo, 'power2', 0);
 
-        const center = 3 * 2 ** (n - 1);
-        if (center > lo && center < 2 ** (n + 1)) {
-            tryAdd(center, 'center', 0);
-        }
+        if (isStandard) {
+            const center = 3 * 2 ** (n - 1);
+            if (center > lo && center < hi) {
+                tryAdd(center, 'center', 0);
+            }
 
-        if (n >= 2) {
-            const subL = 5 * 2 ** (n - 2);
-            const subR = 7 * 2 ** (n - 2);
-            if (subL > lo && subL < center) tryAdd(subL, 'subcenterL', 0);
-            if (subR > center && subR < 2 ** (n + 1)) tryAdd(subR, 'subcenterR', 0);
+            if (n >= 2) {
+                const subL = 5 * 2 ** (n - 2);
+                const subR = 7 * 2 ** (n - 2);
+                if (subL > lo && subL < center) tryAdd(subL, 'subcenterL', 0);
+                if (subR > center && subR < hi) tryAdd(subR, 'subcenterR', 0);
+            }
         }
     }
 
@@ -77,7 +85,7 @@ export const buildPower2Graph = (options: Power2BuildOptions = {}): Power2Graph 
         const { value: m, depth } = frontier.shift()!;
         if (depth >= maxInverseDepth) continue;
 
-        for (const { value: pred, edgeType } of inversePredecessors(m)) {
+        for (const { value: pred, edgeType } of inversePredecessors(m, q, w)) {
             if (!Number.isSafeInteger(pred)) continue;
             const predZone = getZone(pred);
             if (predZone < minZone || predZone > maxZone) continue;
@@ -96,10 +104,10 @@ export const buildPower2Graph = (options: Power2BuildOptions = {}): Power2Graph 
                 if (nodes.has(v)) continue;
 
                 const chain: number[] = [v];
-                let cur = collatzStep(v);
+                let cur = collatzStep(v, q, w);
                 while (cur > 0 && Number.isSafeInteger(cur) && !nodes.has(cur)) {
                     chain.push(cur);
-                    cur = collatzStep(cur);
+                    cur = collatzStep(cur, q, w);
                 }
                 if (!nodes.has(cur)) continue;
 
@@ -150,5 +158,5 @@ export const buildPower2Graph = (options: Power2BuildOptions = {}): Power2Graph 
         });
     }
 
-    return { zones, nodes, edges };
+    return { zones, nodes, edges, multiplier: q, increment: w };
 };

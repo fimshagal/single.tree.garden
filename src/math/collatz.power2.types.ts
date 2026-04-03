@@ -29,6 +29,8 @@ export interface Power2Graph {
     zones: Power2ZoneInfo[];
     nodes: Map<number, Power2Node>;
     edges: Power2Edge[];
+    multiplier: number;
+    increment: number;
 }
 
 export interface Power2BuildOptions {
@@ -44,4 +46,8 @@ export interface Power2BuildOptions {
     forwardFill?: boolean;
     /** Upper zone limit for forward-fill scanning (defaults to maxZone). */
     forwardFillMaxZone?: number;
+    /** Odd-step multiplier q in qn + w (default 3). */
+    multiplier?: number;
+    /** Odd-step increment w in qn + w (default 1). */
+    increment?: number;
 }

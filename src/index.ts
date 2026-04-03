@@ -7,7 +7,7 @@ import {
     outputSubCentersShoulders, outputSixKPlusFour,
     outputSovereignTrunk
 } from "./math.templates/simple";
-import {generateCollatzSequenceAdic, getVProfile, buildPower2Graph} from "./math";
+import {generateCollatzSequenceAdic, getVProfile} from "./math";
 import {createCollatzPhaseRenderer} from "./draw/z.depth.renderer/renderer.ts";
 import {createBinaryWalkRenderer} from "./draw/binary.walk.renderer";
 import {createCollatzFractalRenderer} from "./draw/collatz.fractal.renderer";
@@ -205,29 +205,21 @@ import {createRadialMapRenderer} from "./draw/radial.map.renderer";
     //         initialZoom: 4.0,
     //     });
 
-    const power2Graph = buildPower2Graph({
-        minZone: 2,
-        maxZone: 14,
-        maxInverseDepth: 20,
-        maxNodes: 35_000,
-        forwardFill: true,
-        forwardFillMaxZone: 13,
+    createRadialMapRenderer(document.getElementById('pixiTarget')!, {
+        graph: {
+            minZone: 2,
+            maxZone: 14,
+            maxInverseDepth: 20,
+            maxNodes: 35_000,
+            forwardFill: true,
+            forwardFillMaxZone: 13,
+
+        },
+        ringSpacing: 42,
+        innerRadius: 30,
+        edgeOpacity: 0.12,
+        showDiv2Edges: false,
     });
-
-    console.log(
-        `Power2Graph: ${power2Graph.nodes.size} nodes, ${power2Graph.edges.length} edges`,
-        power2Graph.zones.map(z => `zone ${z.n}: ${(z.coverage * 100).toFixed(1)}%`),
-    );
-
-    createRadialMapRenderer(
-        document.getElementById('pixiTarget')!,
-        power2Graph,
-        {
-            ringSpacing: 42,
-            innerRadius: 30,
-            edgeOpacity: 0.12,
-            showDiv2Edges: false,
-        });
 
     // initRenderer({
     //     parent: document.getElementById('pixiTarget'),

@@ -1,4 +1,8 @@
+import type { Power2BuildOptions } from "../../math/collatz.power2.types.ts";
+
 export interface RadialMapRendererOptions {
+    graph?: Power2BuildOptions;
+
     backgroundColor?: string;
     ringSpacing?: number;
     innerRadius?: number;

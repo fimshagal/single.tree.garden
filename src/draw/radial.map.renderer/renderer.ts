@@ -33,10 +33,79 @@ const nodeAngle = (value: number, zone: number): number => {
 
 interface Pt { x: number; y: number }
 
+const DEFAULT_GRAPH_OPTIONS = {
+    minZone: 2,
+    maxZone: 14,
+    maxInverseDepth: 12,
+    maxNodes: 20_000,
+    forwardFill: false,
+    multiplier: 3,
+    increment: 1,
+} as const;
+
 export function createRadialMapRenderer(
     parent: HTMLElement,
-    graph: Power2Graph,
     options: RadialMapRendererOptions = {},
+): () => void {
+    const graphOpts = { ...DEFAULT_GRAPH_OPTIONS, ...options.graph };
+    let destroyScene: (() => void) | null = null;
+
+    const loader = document.createElement('div');
+    loader.textContent = 'Building graph…';
+    loader.style.cssText =
+        'position:absolute;inset:0;display:flex;align-items:center;' +
+        'justify-content:center;color:#8888aa;font-family:monospace;font-size:14px;' +
+        'pointer-events:none;';
+    parent.style.position ||= 'relative';
+    parent.appendChild(loader);
+
+    const worker = new Worker(
+        new URL('./worker.ts', import.meta.url),
+        { type: 'module' },
+    );
+
+    worker.postMessage(graphOpts);
+    worker.onmessage = (e) => {
+        const raw = e.data as {
+            zones: Power2Graph['zones'];
+            edges: Power2Graph['edges'];
+            nodes: [number, Power2Node][];
+            multiplier: number;
+            increment: number;
+        };
+        const graph: Power2Graph = {
+            zones: raw.zones,
+            edges: raw.edges,
+            nodes: new Map(raw.nodes),
+            multiplier: raw.multiplier,
+            increment: raw.increment,
+        };
+
+        console.log(
+            `Power2Graph: ${graph.nodes.size} nodes, ${graph.edges.length} edges`,
+            graph.zones.map(z => `zone ${z.n}: ${(z.coverage * 100).toFixed(1)}%`),
+        );
+
+        loader.remove();
+        destroyScene = initScene(parent, graph, options);
+        worker.terminate();
+    };
+
+    return () => {
+        worker.terminate();
+        loader.remove();
+        destroyScene?.();
+    };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCENE — everything that requires a built Power2Graph
+   ══════════════════════════════════════════════════════════════ */
+
+function initScene(
+    parent: HTMLElement,
+    graph: Power2Graph,
+    options: RadialMapRendererOptions,
 ): () => void {
     const {
         backgroundColor = 0x020304,
@@ -50,6 +119,9 @@ export function createRadialMapRenderer(
         showDiv2Edges   = false,
     } = options;
 
+    const q = graph.multiplier;
+    const w = graph.increment;
+    const isStandard = q === 3 && w === 1;
     const minZone = graph.zones[0]?.n ?? 2;
     const ringR = (zone: number): number => innerRadius + (zone - minZone) * ringSpacing;
 
@@ -196,14 +268,17 @@ export function createRadialMapRenderer(
     }
 
     function buildLegend(): void {
+        const stepLabel = `${q}n${w >= 0 ? '+' : ''}${w} edge`;
         const entries: [number | string, string][] = [
             [NODE_HEX.power2,     '2ⁿ'],
-            [NODE_HEX.center,     'center 3·2ⁿ⁻¹'],
-            [NODE_HEX.subcenterL, 'sub-L 5·2ⁿ⁻²'],
-            [NODE_HEX.subcenterR, 'sub-R 7·2ⁿ⁻²'],
+            ...(isStandard ? [
+                [NODE_HEX.center,     'center 3·2ⁿ⁻¹'],
+                [NODE_HEX.subcenterL, 'sub-L 5·2ⁿ⁻²'],
+                [NODE_HEX.subcenterR, 'sub-R 7·2ⁿ⁻²'],
+            ] as [number, string][] : []),
             [NODE_HEX.regular,    'inverse BFS'],
             [FORWARD_FILL_HEX,    'forward fill'],
-            [TRIPLE_EDGE_HEX,     '3n+1 edge'],
+            [TRIPLE_EDGE_HEX,     stepLabel],
             [0xFFD700,             'hover path'],
         ];
 
@@ -340,7 +415,7 @@ export function createRadialMapRenderer(
         while (cur > 0 && Number.isSafeInteger(cur) && !visited.has(cur) && chain.length < 500) {
             chain.push(cur);
             visited.add(cur);
-            cur = cur % 2 === 0 ? cur / 2 : 3 * cur + 1;
+            cur = cur % 2 === 0 ? cur / 2 : q * cur + w;
         }
 
         const lw = Math.max(1.2, 2.5 / zoom);
@@ -376,7 +451,7 @@ export function createRadialMapRenderer(
         }
 
         const pad = 8;
-        const next = hovered.value % 2 === 0 ? hovered.value / 2 : 3 * hovered.value + 1;
+        const next = hovered.value % 2 === 0 ? hovered.value / 2 : q * hovered.value + w;
         const body = [
             `${hovered.value}`,
             `zone ${hovered.zone}  (2${sup(hovered.zone)}–2${sup(hovered.zone + 1)})`,
@@ -414,8 +489,8 @@ export function createRadialMapRenderer(
             lastZoom = zoom;
         }
 
-        const w = screenToWorld(mouseX, mouseY);
-        hovered = dragging ? null : findNearest(w.x, w.y);
+        const wpt = screenToWorld(mouseX, mouseY);
+        hovered = dragging ? null : findNearest(wpt.x, wpt.y);
         if (hovered !== prevHovered) {
             updateHighlight();
             updateTooltip();
