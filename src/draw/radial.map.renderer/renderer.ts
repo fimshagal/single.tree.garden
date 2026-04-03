@@ -359,12 +359,9 @@ function initScene(
     let dragging = false;
     let dragSX = 0, dragSY = 0, dragCX = 0, dragCY = 0;
 
-    /* ── initial fit to densest zone range ── */
-    const fullCovZones = graph.zones.filter(z => z.coverage > 0.5);
-    const focusN = fullCovZones.length > 0
-        ? fullCovZones[fullCovZones.length - 1].n + 2
-        : (graph.zones[graph.zones.length - 1]?.n ?? minZone);
-    const focusR = ringR(focusN) + ringSpacing;
+    /* ── initial fit to full zone range ── */
+    const lastN = graph.zones[graph.zones.length - 1]?.n ?? minZone;
+    const focusR = ringR(lastN) + ringSpacing;
     zoom = Math.min(app.screen.width, app.screen.height) / (focusR * 2.3);
     lastZoom = zoom;
     applyWorldTransform();

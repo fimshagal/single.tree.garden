@@ -208,11 +208,11 @@ import {createRadialMapRenderer} from "./draw/radial.map.renderer";
     createRadialMapRenderer(document.getElementById('pixiTarget')!, {
         graph: {
             minZone: 2,
-            maxZone: 14,
+            maxZone: 18,
             maxInverseDepth: 30,
             maxNodes: 45_000,
             forwardFill: true,
-            forwardFillMaxZone: 14, // q
+            forwardFillMaxZone: 15, // q
             multiplier: 3,
             increment: 1,
         },
