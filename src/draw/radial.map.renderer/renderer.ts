@@ -626,13 +626,48 @@ function initScene(
         }
     }
 
+    const edgesPerZone = new Map<number, number>();
+    for (const e of animEdges) {
+        const z = graph.nodes.get(e.from)?.zone ?? 0;
+        edgesPerZone.set(z, (edgesPerZone.get(z) ?? 0) + 1);
+    }
+
+    const zoneLabels = new Map<number, PIXI.Text>();
+    for (let i = 0; i < graph.zones.length; i++) {
+        const label = labelsCtr.children[i] as PIXI.Text | undefined;
+        if (label) zoneLabels.set(graph.zones[i].n, label);
+    }
+
+    function setLabelCoverage(zone: number, ratio: number): void {
+        const label = zoneLabels.get(zone);
+        if (!label || !showCoverage) return;
+        const pct = (ratio * 100).toFixed(1);
+        const { fillStr } = coverageStyle(ratio);
+        label.text = `2${sup(zone)}  ${pct}%`;
+        label.style.fill = fillStr;
+    }
+
+    function resetLabels(): void {
+        for (const z of graph.zones) {
+            setLabelCoverage(z.n, 0);
+        }
+    }
+
+    function restoreLabels(): void {
+        for (const z of graph.zones) {
+            setLabelCoverage(z.n, z.coverage);
+        }
+    }
+
     animBtn.addEventListener('click', () => {
         if (animTween) { animTween.kill(); animTween = null; }
 
         edgesGfx.clear();
+        resetLabels();
         let drawn = 0;
         const total = animEdges.length;
         const state = { p: 0 };
+        const drawnPerZone = new Map<number, number>();
 
         animTween = gsap.to(state, {
             p: total,
@@ -644,9 +679,18 @@ function initScene(
                     const e = animEdges[drawn];
                     edgeStyle(e);
                     drawCurve(edgesGfx, e.from, e.to);
+
+                    const z = graph.nodes.get(e.from)?.zone ?? 0;
+                    const count = (drawnPerZone.get(z) ?? 0) + 1;
+                    drawnPerZone.set(z, count);
+                    const zoneTotal = edgesPerZone.get(z) ?? 1;
+                    setLabelCoverage(z, count / zoneTotal);
                 }
             },
-            onComplete() { animTween = null; },
+            onComplete() {
+                restoreLabels();
+                animTween = null;
+            },
         });
     });
 
