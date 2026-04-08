@@ -17,6 +17,25 @@ const NODE_HEX: Record<Power2NodeType, number> = {
 };
 const FORWARD_FILL_HEX = 0x8a7ac8;
 const TRIPLE_EDGE_HEX  = 0xB45AFF;
+const CYCLE_HEX        = 0x555555;
+
+const GRADIENT_KEYS: [number, number, number][] = [
+    [0x1a, 0x66, 0xff],
+    [0x00, 0xdd, 0xdd],
+    [0x00, 0xee, 0x44],
+    [0xff, 0xee, 0x00],
+    [0xff, 0x44, 0x00],
+];
+
+function stepsColor(t: number): number {
+    const idx = Math.max(0, Math.min(1, t)) * (GRADIENT_KEYS.length - 1);
+    const i = Math.min(Math.floor(idx), GRADIENT_KEYS.length - 2);
+    const f = idx - i;
+    const r = Math.round(GRADIENT_KEYS[i][0] * (1 - f) + GRADIENT_KEYS[i + 1][0] * f);
+    const g = Math.round(GRADIENT_KEYS[i][1] * (1 - f) + GRADIENT_KEYS[i + 1][1] * f);
+    const b = Math.round(GRADIENT_KEYS[i][2] * (1 - f) + GRADIENT_KEYS[i + 1][2] * f);
+    return (r << 16) | (g << 8) | b;
+}
 
 const nodeSize = (type: Power2NodeType, depth: number): number => {
     if (type === 'power2')     return 6;
@@ -80,6 +99,7 @@ export function createRadialMapRenderer(
             multiplier: number;
             increment: number;
             envelope: EnvelopeSegment[];
+            stoppingTimes: [number, number][];
         };
         const graph: Power2Graph = {
             zones: raw.zones,
@@ -88,6 +108,7 @@ export function createRadialMapRenderer(
             multiplier: raw.multiplier,
             increment: raw.increment,
         };
+        const stoppingTimes = new Map<number, number>(raw.stoppingTimes);
 
         console.log(
             `Power2Graph: ${graph.nodes.size} nodes, ${graph.edges.length} edges`,
@@ -95,7 +116,7 @@ export function createRadialMapRenderer(
         );
 
         loader.remove();
-        destroyScene = initScene(parent, graph, raw.envelope, options);
+        destroyScene = initScene(parent, graph, raw.envelope, stoppingTimes, options);
         worker.terminate();
     };
 
@@ -114,6 +135,7 @@ function initScene(
     parent: HTMLElement,
     graph: Power2Graph,
     envelope: EnvelopeSegment[],
+    stoppingTimes: Map<number, number>,
     options: RadialMapRendererOptions,
 ): () => void {
     const {
@@ -256,6 +278,66 @@ function initScene(
             nodesGfx.beginFill(hex, alpha);
             nodesGfx.drawCircle(pos.x, pos.y, r);
             nodesGfx.endFill();
+        }
+    }
+
+    /* ── stopping-time stats ── */
+    let maxSteps = 0;
+    for (const [, steps] of stoppingTimes) {
+        const abs = Math.abs(steps);
+        if (abs > maxSteps) maxSteps = abs;
+    }
+
+    const zoneAvgSteps = new Map<number, { avg: number; max: number; count: number; cycles: number }>();
+    for (const z of graph.zones) {
+        let sum = 0, cnt = 0, mx = 0, cyc = 0;
+        for (const [val, node] of graph.nodes) {
+            if (node.zone !== z.n) continue;
+            const s = stoppingTimes.get(val) ?? 0;
+            const abs = Math.abs(s);
+            sum += abs; cnt++;
+            if (abs > mx) mx = abs;
+            if (s < 0) cyc++;
+        }
+        zoneAvgSteps.set(z.n, { avg: cnt > 0 ? sum / cnt : 0, max: mx, count: cnt, cycles: cyc });
+    }
+
+    console.group('Stopping-time statistics per zone');
+    for (const [zn, stat] of zoneAvgSteps) {
+        console.log(
+            `zone ${zn}:  avg=${stat.avg.toFixed(1)}  max=${stat.max}  nodes=${stat.count}` +
+            (stat.cycles > 0 ? `  cycles=${stat.cycles}` : ''),
+        );
+    }
+    console.groupEnd();
+
+    let stepsMode = false;
+
+    function buildNodesSteps(): void {
+        nodesGfx.clear();
+        const cap = maxSteps || 1;
+
+        const sorted = [...graph.nodes.values()].sort((a, b) => {
+            const sa = Math.abs(stoppingTimes.get(a.value) ?? 0);
+            const sb = Math.abs(stoppingTimes.get(b.value) ?? 0);
+            return sa - sb;
+        });
+
+        nodesGfx.lineStyle(0);
+        for (const node of sorted) {
+            const pos = positions.get(node.value);
+            if (!pos) continue;
+            const steps = stoppingTimes.get(node.value) ?? 0;
+            const abs = Math.abs(steps);
+            const r = 2.5 * nodeBaseSize;
+            nodesGfx.beginFill(stepsColor(abs / cap), 0.85);
+            nodesGfx.drawCircle(pos.x, pos.y, r);
+            nodesGfx.endFill();
+            if (steps < 0) {
+                nodesGfx.lineStyle(0.7, 0xffffff, 0.35);
+                nodesGfx.drawCircle(pos.x, pos.y, r + 1.2);
+                nodesGfx.lineStyle(0);
+            }
         }
     }
 
@@ -497,11 +579,16 @@ function initScene(
 
         const pad = 8;
         const next = hovered.value % 2 === 0 ? hovered.value / 2 : q * hovered.value + w;
+        const steps = stoppingTimes.get(hovered.value) ?? 0;
+        const stepsStr = steps >= 0
+            ? `${steps} → 1`
+            : `${Math.abs(steps)} → cycle`;
         const body = [
             `${hovered.value}`,
             `zone ${hovered.zone}  (2${sup(hovered.zone)}–2${sup(hovered.zone + 1)})`,
             `type: ${hovered.type}`,
             `depth: ${hovered.depth}`,
+            `trajectory: ${stepsStr}`,
             `→ ${next}`,
         ].join('\n');
 
@@ -646,6 +733,57 @@ function initScene(
     });
     parent.appendChild(causticBtn);
 
+    /* ── Steps toggle button ── */
+    const stepsBtn = document.createElement('button');
+    stepsBtn.textContent = '⏱  Steps';
+    stepsBtn.style.cssText =
+        'position:absolute;bottom:12px;left:248px;padding:6px 14px;' +
+        'background:#1a1a2e;color:#aaa;border:1px solid #333;border-radius:4px;' +
+        'font-family:monospace;font-size:12px;cursor:pointer;z-index:10;' +
+        'transition:background .15s,color .15s;';
+    stepsBtn.onmouseenter = () => { stepsBtn.style.background = '#2a2a4e'; stepsBtn.style.color = '#ddd'; };
+    stepsBtn.onmouseleave = () => {
+        if (!stepsMode) { stepsBtn.style.background = '#1a1a2e'; stepsBtn.style.color = '#aaa'; }
+    };
+
+    /* ── gradient bar (shows in steps mode) ── */
+    const gradientBar = document.createElement('div');
+    gradientBar.style.cssText =
+        'position:absolute;bottom:44px;left:248px;width:110px;height:14px;border-radius:3px;' +
+        'border:1px solid #333;z-index:10;display:none;' +
+        'background:linear-gradient(90deg,#1a66ff,#00dddd,#00ee44,#ffee00,#ff4400);';
+    const gradLabelMin = document.createElement('span');
+    gradLabelMin.textContent = '0';
+    gradLabelMin.style.cssText =
+        'position:absolute;bottom:60px;left:248px;font-family:monospace;font-size:10px;' +
+        'color:#aaa;z-index:10;display:none;';
+    const gradLabelMax = document.createElement('span');
+    gradLabelMax.textContent = String(maxSteps);
+    gradLabelMax.style.cssText =
+        'position:absolute;bottom:60px;left:336px;font-family:monospace;font-size:10px;' +
+        'color:#aaa;z-index:10;display:none;text-align:right;';
+    parent.appendChild(gradientBar);
+    parent.appendChild(gradLabelMin);
+    parent.appendChild(gradLabelMax);
+
+    stepsBtn.addEventListener('click', () => {
+        stepsMode = !stepsMode;
+        stepsBtn.style.background = stepsMode ? '#2a1a0a' : '#1a1a2e';
+        stepsBtn.style.color = stepsMode ? '#ffaa44' : '#aaa';
+        stepsBtn.style.borderColor = stepsMode ? '#ffaa4455' : '#333';
+        gradientBar.style.display = stepsMode ? 'block' : 'none';
+        gradLabelMin.style.display = stepsMode ? 'block' : 'none';
+        gradLabelMax.style.display = stepsMode ? 'block' : 'none';
+
+        if (stepsMode) {
+            buildNodesSteps();
+        } else {
+            nodesGfx.clear();
+            buildNodes();
+        }
+    });
+    parent.appendChild(stepsBtn);
+
     function edgeStyle(e: typeof animEdges[0]): void {
         const fn = graph.nodes.get(e.from);
         if (e.type === 'div2') {
@@ -690,6 +828,9 @@ function initScene(
         }
     }
 
+    const zoneFinalCov = new Map<number, number>();
+    for (const z of graph.zones) zoneFinalCov.set(z.n, z.coverage);
+
     animBtn.addEventListener('click', () => {
         if (animTween) { animTween.kill(); animTween = null; }
 
@@ -715,7 +856,8 @@ function initScene(
                     const count = (drawnPerZone.get(z) ?? 0) + 1;
                     drawnPerZone.set(z, count);
                     const zoneTotal = edgesPerZone.get(z) ?? 1;
-                    setLabelCoverage(z, count / zoneTotal);
+                    const realCov = zoneFinalCov.get(z) ?? 1;
+                    setLabelCoverage(z, realCov * (count / zoneTotal));
                 }
             },
             onComplete() {
@@ -732,6 +874,10 @@ function initScene(
         animTween?.kill();
         animBtn.remove();
         causticBtn.remove();
+        stepsBtn.remove();
+        gradientBar.remove();
+        gradLabelMin.remove();
+        gradLabelMax.remove();
         gsap.ticker.remove(tick);
         view.removeEventListener('wheel', onWheel);
         view.removeEventListener('mousedown', onDown);

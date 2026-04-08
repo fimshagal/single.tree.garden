@@ -213,7 +213,7 @@ import {createRadialMapRenderer} from "./draw/radial.map.renderer";
             maxNodes: 47_000,
             forwardFill: true,
             forwardFillMaxZone: 15, // q
-            multiplier: 3,
+            multiplier: 1,
             increment: 1,
         },
         ringSpacing: 42,
