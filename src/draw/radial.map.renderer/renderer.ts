@@ -555,9 +555,70 @@ function initScene(
     syncLabelScale();
 
     /* ══════════════════════════════════════════
+       EDGE ANIMATION
+       ══════════════════════════════════════════ */
+    const animEdges = graph.edges
+        .filter(e => showDiv2Edges || e.type === 'triple')
+        .sort((a, b) => {
+            const za = graph.nodes.get(a.from)?.zone ?? 0;
+            const zb = graph.nodes.get(b.from)?.zone ?? 0;
+            return za - zb || a.from - b.from;
+        });
+
+    let animTween: gsap.core.Tween | null = null;
+
+    const animBtn = document.createElement('button');
+    animBtn.textContent = '▶  Animate';
+    animBtn.style.cssText =
+        'position:absolute;bottom:12px;left:12px;padding:6px 14px;' +
+        'background:#1a1a2e;color:#aaa;border:1px solid #333;border-radius:4px;' +
+        'font-family:monospace;font-size:12px;cursor:pointer;z-index:10;' +
+        'transition:background .15s,color .15s;';
+    animBtn.onmouseenter = () => { animBtn.style.background = '#2a2a4e'; animBtn.style.color = '#ddd'; };
+    animBtn.onmouseleave = () => { animBtn.style.background = '#1a1a2e'; animBtn.style.color = '#aaa'; };
+    parent.appendChild(animBtn);
+
+    function edgeStyle(e: typeof animEdges[0]): void {
+        const fn = graph.nodes.get(e.from);
+        if (e.type === 'div2') {
+            edgesGfx.lineStyle(0.5, 0xffffff, edgeOpacity * 0.25);
+        } else if (fn && fn.depth < 0) {
+            edgesGfx.lineStyle(0.8, TRIPLE_EDGE_HEX, edgeOpacity * 0.4);
+        } else {
+            edgesGfx.lineStyle(0.8, TRIPLE_EDGE_HEX, edgeOpacity);
+        }
+    }
+
+    animBtn.addEventListener('click', () => {
+        if (animTween) { animTween.kill(); animTween = null; }
+
+        edgesGfx.clear();
+        let drawn = 0;
+        const total = animEdges.length;
+        const state = { p: 0 };
+
+        animTween = gsap.to(state, {
+            p: total,
+            duration: Math.max(3, total / 4000),
+            ease: 'none',
+            onUpdate() {
+                const target = Math.min(Math.floor(state.p), total);
+                for (; drawn < target; drawn++) {
+                    const e = animEdges[drawn];
+                    edgeStyle(e);
+                    drawCurve(edgesGfx, e.from, e.to);
+                }
+            },
+            onComplete() { animTween = null; },
+        });
+    });
+
+    /* ══════════════════════════════════════════
        CLEANUP
        ══════════════════════════════════════════ */
     return () => {
+        animTween?.kill();
+        animBtn.remove();
         gsap.ticker.remove(tick);
         view.removeEventListener('wheel', onWheel);
         view.removeEventListener('mousedown', onDown);
