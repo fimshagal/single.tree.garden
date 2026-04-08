@@ -6,7 +6,7 @@ interface WorkerInput {
     graphOpts: Power2BuildOptions;
     ringSpacing: number;
     innerRadius: number;
-    predictZones: number;
+    predictCausticZones: number;
 }
 
 /**
@@ -28,7 +28,7 @@ function computeStoppingTime(v: number, q: number, w: number, limit: number): nu
 }
 
 self.onmessage = (e: MessageEvent<WorkerInput>) => {
-    const { graphOpts, ringSpacing, innerRadius, predictZones } = e.data;
+    const { graphOpts, ringSpacing, innerRadius, predictCausticZones } = e.data;
     const graph = buildPower2Graph(graphOpts);
 
     const q = graph.multiplier;
@@ -37,7 +37,7 @@ self.onmessage = (e: MessageEvent<WorkerInput>) => {
     const maxZone = graph.zones[graph.zones.length - 1]?.n ?? minZone;
 
     const envelope = computeEnvelope({
-        q, w, minZone, maxZone, ringSpacing, innerRadius, predictZones,
+        q, w, minZone, maxZone, ringSpacing, innerRadius, predictCausticZones,
     });
 
     const stoppingTimes: [number, number][] = [];

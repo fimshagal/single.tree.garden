@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import type { RadialMapRendererOptions } from "./types.ts";
 import type { Power2Graph, Power2Node, Power2NodeType } from "../../math/collatz.power2.types.ts";
 import type { EnvelopeSegment } from "./envelope.ts";
+import "./radial-map.css";
 
 const SUPER = '⁰¹²³⁴⁵⁶⁷⁸⁹';
 const sup = (n: number): string =>
@@ -72,10 +73,7 @@ export function createRadialMapRenderer(
 
     const loader = document.createElement('div');
     loader.textContent = 'Building graph…';
-    loader.style.cssText =
-        'position:absolute;inset:0;display:flex;align-items:center;' +
-        'justify-content:center;color:#8888aa;font-family:monospace;font-size:14px;' +
-        'pointer-events:none;';
+    loader.className = 'rm-loader';
     parent.style.position ||= 'relative';
     parent.appendChild(loader);
 
@@ -87,10 +85,10 @@ export function createRadialMapRenderer(
     const {
         ringSpacing: rs = 42,
         innerRadius: ir = 32,
-        predictZones: pz = 0,
+        predictCausticZones: pz = 0,
     } = options;
 
-    worker.postMessage({ graphOpts, ringSpacing: rs, innerRadius: ir, predictZones: pz });
+    worker.postMessage({ graphOpts, ringSpacing: rs, innerRadius: ir, predictCausticZones: pz });
     worker.onmessage = (e) => {
         const raw = e.data as {
             zones: Power2Graph['zones'];
@@ -428,11 +426,21 @@ function initScene(
     }
 
     function drawSegments(segs: EnvelopeSegment[]): void {
+        const maxJump2 = (ringSpacing * 2) ** 2;
         for (const seg of segs) {
             if (seg.points.length < 2) continue;
-            envelopeGfx.moveTo(seg.points[0].x, seg.points[0].y);
+            let prevX = seg.points[0].x, prevY = seg.points[0].y;
+            envelopeGfx.moveTo(prevX, prevY);
             for (let i = 1; i < seg.points.length; i++) {
-                envelopeGfx.lineTo(seg.points[i].x, seg.points[i].y);
+                const px = seg.points[i].x, py = seg.points[i].y;
+                const dx = px - prevX, dy = py - prevY;
+                if (dx * dx + dy * dy > maxJump2) {
+                    envelopeGfx.moveTo(px, py);
+                } else {
+                    envelopeGfx.lineTo(px, py);
+                }
+                prevX = px;
+                prevY = py;
             }
         }
     }
@@ -707,73 +715,42 @@ function initScene(
 
     const animBtn = document.createElement('button');
     animBtn.textContent = '▶  Animate';
-    animBtn.style.cssText =
-        'position:absolute;bottom:12px;left:12px;padding:6px 14px;' +
-        'background:#1a1a2e;color:#aaa;border:1px solid #333;border-radius:4px;' +
-        'font-family:monospace;font-size:12px;cursor:pointer;z-index:10;' +
-        'transition:background .15s,color .15s;';
-    animBtn.onmouseenter = () => { animBtn.style.background = '#2a2a4e'; animBtn.style.color = '#ddd'; };
-    animBtn.onmouseleave = () => { animBtn.style.background = '#1a1a2e'; animBtn.style.color = '#aaa'; };
+    animBtn.className = 'rm-btn rm-btn-animate';
     parent.appendChild(animBtn);
 
     const causticBtn = document.createElement('button');
     causticBtn.textContent = '◉  Caustic';
-    causticBtn.style.cssText =
-        'position:absolute;bottom:12px;left:130px;padding:6px 14px;' +
-        'background:#1a1a2e;color:#aaa;border:1px solid #333;border-radius:4px;' +
-        'font-family:monospace;font-size:12px;cursor:pointer;z-index:10;' +
-        'transition:background .15s,color .15s;';
-    causticBtn.onmouseenter = () => { causticBtn.style.background = '#2a2a4e'; causticBtn.style.color = '#ddd'; };
-    causticBtn.onmouseleave = () => { if (!envelopeGfx.visible) { causticBtn.style.background = '#1a1a2e'; causticBtn.style.color = '#aaa'; } };
+    causticBtn.className = 'rm-btn rm-btn-caustic';
     causticBtn.addEventListener('click', () => {
         envelopeGfx.visible = !envelopeGfx.visible;
-        causticBtn.style.background = envelopeGfx.visible ? '#0a2a2a' : '#1a1a2e';
-        causticBtn.style.color = envelopeGfx.visible ? '#00FFCC' : '#aaa';
-        causticBtn.style.borderColor = envelopeGfx.visible ? '#00FFCC55' : '#333';
+        causticBtn.classList.toggle('active', envelopeGfx.visible);
     });
     parent.appendChild(causticBtn);
 
     /* ── Steps toggle button ── */
     const stepsBtn = document.createElement('button');
     stepsBtn.textContent = '⏱  Steps';
-    stepsBtn.style.cssText =
-        'position:absolute;bottom:12px;left:248px;padding:6px 14px;' +
-        'background:#1a1a2e;color:#aaa;border:1px solid #333;border-radius:4px;' +
-        'font-family:monospace;font-size:12px;cursor:pointer;z-index:10;' +
-        'transition:background .15s,color .15s;';
-    stepsBtn.onmouseenter = () => { stepsBtn.style.background = '#2a2a4e'; stepsBtn.style.color = '#ddd'; };
-    stepsBtn.onmouseleave = () => {
-        if (!stepsMode) { stepsBtn.style.background = '#1a1a2e'; stepsBtn.style.color = '#aaa'; }
-    };
+    stepsBtn.className = 'rm-btn rm-btn-steps';
 
     /* ── gradient bar (shows in steps mode) ── */
     const gradientBar = document.createElement('div');
-    gradientBar.style.cssText =
-        'position:absolute;bottom:44px;left:248px;width:110px;height:14px;border-radius:3px;' +
-        'border:1px solid #333;z-index:10;display:none;' +
-        'background:linear-gradient(90deg,#1a66ff,#00dddd,#00ee44,#ffee00,#ff4400);';
+    gradientBar.className = 'rm-gradient-bar';
     const gradLabelMin = document.createElement('span');
     gradLabelMin.textContent = '0';
-    gradLabelMin.style.cssText =
-        'position:absolute;bottom:60px;left:248px;font-family:monospace;font-size:10px;' +
-        'color:#aaa;z-index:10;display:none;';
+    gradLabelMin.className = 'rm-grad-label rm-grad-label-min';
     const gradLabelMax = document.createElement('span');
     gradLabelMax.textContent = String(maxSteps);
-    gradLabelMax.style.cssText =
-        'position:absolute;bottom:60px;left:336px;font-family:monospace;font-size:10px;' +
-        'color:#aaa;z-index:10;display:none;text-align:right;';
+    gradLabelMax.className = 'rm-grad-label rm-grad-label-max';
     parent.appendChild(gradientBar);
     parent.appendChild(gradLabelMin);
     parent.appendChild(gradLabelMax);
 
     stepsBtn.addEventListener('click', () => {
         stepsMode = !stepsMode;
-        stepsBtn.style.background = stepsMode ? '#2a1a0a' : '#1a1a2e';
-        stepsBtn.style.color = stepsMode ? '#ffaa44' : '#aaa';
-        stepsBtn.style.borderColor = stepsMode ? '#ffaa4455' : '#333';
-        gradientBar.style.display = stepsMode ? 'block' : 'none';
-        gradLabelMin.style.display = stepsMode ? 'block' : 'none';
-        gradLabelMax.style.display = stepsMode ? 'block' : 'none';
+        stepsBtn.classList.toggle('active', stepsMode);
+        gradientBar.classList.toggle('visible', stepsMode);
+        gradLabelMin.classList.toggle('visible', stepsMode);
+        gradLabelMax.classList.toggle('visible', stepsMode);
 
         if (stepsMode) {
             buildNodesSteps();

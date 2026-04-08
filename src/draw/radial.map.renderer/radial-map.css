@@ -1,0 +1,95 @@
+.rm-loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8888aa;
+    font-family: monospace;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+/* ── shared button base ── */
+
+.rm-btn {
+    position: absolute;
+    bottom: 12px;
+    padding: 6px 14px;
+    background: #1a1a2e;
+    color: #aaa;
+    border: 1px solid #333;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.rm-btn:hover {
+    background: #2a2a4e;
+    color: #ddd;
+}
+
+/* ── per-button positioning ── */
+
+.rm-btn-animate { left: 12px; }
+.rm-btn-caustic { left: 130px; }
+.rm-btn-steps   { left: 248px; }
+
+/* ── active states ── */
+
+.rm-btn-caustic.active {
+    background: #0a2a2a;
+    color: #00FFCC;
+    border-color: #00FFCC55;
+}
+.rm-btn-caustic.active:hover {
+    background: #0a2a2a;
+    color: #00FFCC;
+}
+
+.rm-btn-steps.active {
+    background: #2a1a0a;
+    color: #ffaa44;
+    border-color: #ffaa4455;
+}
+.rm-btn-steps.active:hover {
+    background: #2a1a0a;
+    color: #ffaa44;
+}
+
+/* ── gradient bar (steps mode) ── */
+
+.rm-gradient-bar {
+    position: absolute;
+    bottom: 44px;
+    left: 248px;
+    width: 110px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid #333;
+    z-index: 10;
+    display: none;
+    background: linear-gradient(90deg, #1a66ff, #00dddd, #00ee44, #ffee00, #ff4400);
+}
+
+.rm-grad-label {
+    position: absolute;
+    bottom: 60px;
+    font-family: monospace;
+    font-size: 10px;
+    color: #aaa;
+    z-index: 10;
+    display: none;
+}
+
+.rm-grad-label-min { left: 248px; }
+.rm-grad-label-max { left: 336px; text-align: right; }
+
+/* show gradient elements when steps active */
+.rm-gradient-bar.visible,
+.rm-grad-label.visible {
+    display: block;
+}

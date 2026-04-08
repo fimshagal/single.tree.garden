@@ -28,7 +28,7 @@ export interface EnvelopeParams {
     innerRadius: number;
     samples?: number;
     /** Extra zones beyond maxZone to predict (same numerical method, no graph needed). */
-    predictZones?: number;
+    predictCausticZones?: number;
 }
 
 export function computeEnvelope(params: EnvelopeParams): EnvelopeSegment[] {
@@ -36,10 +36,10 @@ export function computeEnvelope(params: EnvelopeParams): EnvelopeSegment[] {
         q, w, minZone, maxZone,
         ringSpacing, innerRadius,
         samples = 800,
-        predictZones = 0,
+        predictCausticZones = 0,
     } = params;
 
-    const totalMax = maxZone + predictZones;
+    const totalMax = maxZone + predictCausticZones;
     const ringR = (zone: number): number => innerRadius + (zone - minZone) * ringSpacing;
     const result: EnvelopeSegment[] = [];
 

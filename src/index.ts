@@ -220,7 +220,7 @@ import {createRadialMapRenderer} from "./draw/radial.map.renderer";
         innerRadius: 30,
         edgeOpacity: 0.12,
         showDiv2Edges: false,
-        predictZones: 12
+        predictCausticZones: 12
     });
 
     // initRenderer({
