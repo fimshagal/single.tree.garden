@@ -68,60 +68,142 @@ export function createRadialMapRenderer(
     parent: HTMLElement,
     options: RadialMapRendererOptions = {},
 ): () => void {
-    const graphOpts = { ...DEFAULT_GRAPH_OPTIONS, ...options.graph };
-    let destroyScene: (() => void) | null = null;
-
-    const loader = document.createElement('div');
-    loader.textContent = 'Building graph…';
-    loader.className = 'rm-loader';
-    parent.style.position ||= 'relative';
-    parent.appendChild(loader);
-
-    const worker = new Worker(
-        new URL('./worker.ts', import.meta.url),
-        { type: 'module' },
-    );
-
+    const baseGraphOpts = { ...DEFAULT_GRAPH_OPTIONS, ...options.graph };
     const {
         ringSpacing: rs = 42,
         innerRadius: ir = 32,
         predictCausticZones: pz = 0,
     } = options;
 
-    worker.postMessage({ graphOpts, ringSpacing: rs, innerRadius: ir, predictCausticZones: pz });
-    worker.onmessage = (e) => {
-        const raw = e.data as {
-            zones: Power2Graph['zones'];
-            edges: Power2Graph['edges'];
-            nodes: [number, Power2Node][];
-            multiplier: number;
-            increment: number;
-            envelope: EnvelopeSegment[];
-            stoppingTimes: [number, number][];
-        };
-        const graph: Power2Graph = {
-            zones: raw.zones,
-            edges: raw.edges,
-            nodes: new Map(raw.nodes),
-            multiplier: raw.multiplier,
-            increment: raw.increment,
-        };
-        const stoppingTimes = new Map<number, number>(raw.stoppingTimes);
+    parent.style.position ||= 'relative';
 
-        console.log(
-            `Power2Graph: ${graph.nodes.size} nodes, ${graph.edges.length} edges`,
-            graph.zones.map(z => `zone ${z.n}: ${(z.coverage * 100).toFixed(1)}%`),
-        );
+    /* ── control panel ── */
+    const panel = document.createElement('div');
+    panel.className = 'rm-panel';
 
-        loader.remove();
-        destroyScene = initScene(parent, graph, raw.envelope, stoppingTimes, options);
-        worker.terminate();
+    const qInput = document.createElement('input');
+    qInput.type = 'number';
+    qInput.className = 'rm-input';
+    qInput.min = '1';
+    qInput.step = '2';
+    qInput.value = String(baseGraphOpts.multiplier);
+
+    const wInput = document.createElement('input');
+    wInput.type = 'number';
+    wInput.className = 'rm-input';
+    wInput.step = '2';
+    wInput.value = String(baseGraphOpts.increment);
+
+    const qLabel = document.createElement('label');
+    qLabel.className = 'rm-label';
+    qLabel.textContent = 'q';
+    qLabel.appendChild(qInput);
+
+    const wLabel = document.createElement('label');
+    wLabel.className = 'rm-label';
+    wLabel.textContent = 'w';
+    wLabel.appendChild(wInput);
+
+    const formula = document.createElement('span');
+    formula.className = 'rm-formula';
+    const updateFormula = () => {
+        formula.textContent = `${qInput.value}n + ${wInput.value}`;
     };
+    updateFormula();
+    qInput.addEventListener('input', updateFormula);
+    wInput.addEventListener('input', updateFormula);
+
+    const recalcBtn = document.createElement('button');
+    recalcBtn.className = 'rm-btn rm-btn-recalc';
+    recalcBtn.textContent = '⟳  Recalc';
+
+    panel.append(qLabel, wLabel, formula, recalcBtn);
+    parent.appendChild(panel);
+
+    /* ── enforce odd increment on blur ── */
+    wInput.addEventListener('blur', () => {
+        let v = parseInt(wInput.value, 10);
+        if (isNaN(v) || v === 0) v = 1;
+        if (v % 2 === 0) v += v > 0 ? 1 : -1;
+        wInput.value = String(v);
+        updateFormula();
+    });
+
+    /* ── lifecycle state ── */
+    let activeWorker: Worker | null = null;
+    let destroyScene: (() => void) | null = null;
+    let loader: HTMLDivElement | null = null;
+
+    function launch(multiplier: number, increment: number): void {
+        activeWorker?.terminate();
+        destroyScene?.();
+        loader?.remove();
+        destroyScene = null;
+
+        loader = document.createElement('div');
+        loader.textContent = 'Building graph…';
+        loader.className = 'rm-loader';
+        parent.appendChild(loader);
+
+        const graphOpts = { ...baseGraphOpts, multiplier, increment };
+        const worker = new Worker(
+            new URL('./worker.ts', import.meta.url),
+            { type: 'module' },
+        );
+        activeWorker = worker;
+
+        worker.postMessage({ graphOpts, ringSpacing: rs, innerRadius: ir, predictCausticZones: pz });
+        worker.onmessage = (e) => {
+            if (activeWorker !== worker) return;
+            const raw = e.data as {
+                zones: Power2Graph['zones'];
+                edges: Power2Graph['edges'];
+                nodes: [number, Power2Node][];
+                multiplier: number;
+                increment: number;
+                envelope: EnvelopeSegment[];
+                stoppingTimes: [number, number][];
+            };
+            const graph: Power2Graph = {
+                zones: raw.zones,
+                edges: raw.edges,
+                nodes: new Map(raw.nodes),
+                multiplier: raw.multiplier,
+                increment: raw.increment,
+            };
+            const stoppingTimes = new Map<number, number>(raw.stoppingTimes);
+
+            console.log(
+                `Power2Graph: ${graph.nodes.size} nodes, ${graph.edges.length} edges`,
+                graph.zones.map(z => `zone ${z.n}: ${(z.coverage * 100).toFixed(1)}%`),
+            );
+
+            loader?.remove();
+            loader = null;
+            destroyScene = initScene(parent, graph, raw.envelope, stoppingTimes, options);
+            worker.terminate();
+        };
+    }
+
+    recalcBtn.addEventListener('click', () => {
+        let qVal = parseInt(qInput.value, 10);
+        let wVal = parseInt(wInput.value, 10);
+        if (isNaN(qVal) || qVal < 1) qVal = 1;
+        if (isNaN(wVal) || wVal === 0) wVal = 1;
+        if (wVal % 2 === 0) wVal += wVal > 0 ? 1 : -1;
+        qInput.value = String(qVal);
+        wInput.value = String(wVal);
+        updateFormula();
+        launch(qVal, wVal);
+    });
+
+    launch(baseGraphOpts.multiplier, baseGraphOpts.increment);
 
     return () => {
-        worker.terminate();
-        loader.remove();
+        activeWorker?.terminate();
+        loader?.remove();
         destroyScene?.();
+        panel.remove();
     };
 }
 

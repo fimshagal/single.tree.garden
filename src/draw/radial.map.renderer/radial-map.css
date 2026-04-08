@@ -1,3 +1,62 @@
+/* ── control panel (top-right) ── */
+
+.rm-panel {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    z-index: 10;
+    pointer-events: auto;
+    max-width: 260px;
+}
+
+.rm-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #888;
+}
+
+.rm-input {
+    width: 52px;
+    padding: 4px 6px;
+    background: #111118;
+    color: #ccc;
+    border: 1px solid #333;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 12px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+}
+
+.rm-input::-webkit-inner-spin-button,
+.rm-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.rm-input:focus {
+    border-color: #666;
+}
+
+.rm-formula {
+    font-family: monospace;
+    font-size: 13px;
+    color: #B45AFF;
+    padding: 0 4px;
+    min-width: 60px;
+}
+
+/* ── loader ── */
+
 .rm-loader {
     position: absolute;
     inset: 0;
@@ -5,9 +64,11 @@
     align-items: center;
     justify-content: center;
     color: #8888aa;
+    background: #020304;
     font-family: monospace;
     font-size: 14px;
     pointer-events: none;
+    z-index: 5;
 }
 
 /* ── shared button base ── */
@@ -30,6 +91,12 @@
 .rm-btn:hover {
     background: #2a2a4e;
     color: #ddd;
+}
+
+.rm-btn.rm-btn-recalc {
+    position: static;
+    bottom: auto;
+    width: auto;
 }
 
 /* ── per-button positioning ── */
