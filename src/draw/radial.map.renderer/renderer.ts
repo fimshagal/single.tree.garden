@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 import { gsap } from "gsap";
 import type { RadialMapRendererOptions } from "./types.ts";
 import type { Power2Graph, Power2Node, Power2NodeType } from "../../math/collatz.power2.types.ts";
+import type { EnvelopeSegment } from "./envelope.ts";
 
 const SUPER = '⁰¹²³⁴⁵⁶⁷⁸⁹';
 const sup = (n: number): string =>
@@ -64,7 +65,12 @@ export function createRadialMapRenderer(
         { type: 'module' },
     );
 
-    worker.postMessage(graphOpts);
+    const {
+        ringSpacing: rs = 42,
+        innerRadius: ir = 32,
+    } = options;
+
+    worker.postMessage({ graphOpts, ringSpacing: rs, innerRadius: ir });
     worker.onmessage = (e) => {
         const raw = e.data as {
             zones: Power2Graph['zones'];
@@ -72,6 +78,7 @@ export function createRadialMapRenderer(
             nodes: [number, Power2Node][];
             multiplier: number;
             increment: number;
+            envelope: EnvelopeSegment[];
         };
         const graph: Power2Graph = {
             zones: raw.zones,
@@ -87,7 +94,7 @@ export function createRadialMapRenderer(
         );
 
         loader.remove();
-        destroyScene = initScene(parent, graph, options);
+        destroyScene = initScene(parent, graph, raw.envelope, options);
         worker.terminate();
     };
 
@@ -105,6 +112,7 @@ export function createRadialMapRenderer(
 function initScene(
     parent: HTMLElement,
     graph: Power2Graph,
+    envelope: EnvelopeSegment[],
     options: RadialMapRendererOptions,
 ): () => void {
     const {
@@ -150,10 +158,11 @@ function initScene(
 
     const guidesGfx    = new PIXI.Graphics();
     const edgesGfx     = new PIXI.Graphics();
+    const envelopeGfx  = new PIXI.Graphics();
     const highlightGfx = new PIXI.Graphics();
     const nodesGfx     = new PIXI.Graphics();
     const labelsCtr    = new PIXI.Container();
-    world.addChild(guidesGfx, edgesGfx, highlightGfx, nodesGfx, labelsCtr);
+    world.addChild(guidesGfx, edgesGfx, envelopeGfx, highlightGfx, nodesGfx, labelsCtr);
 
     const tooltipGfx = new PIXI.Graphics();
     const tooltipText = new PIXI.Text('', {
@@ -335,11 +344,39 @@ function initScene(
         };
     }
 
+    function drawEnvelope(): void {
+        for (const seg of envelope) {
+            if (seg.points.length < 2) continue;
+            envelopeGfx.moveTo(seg.points[0].x, seg.points[0].y);
+            for (let i = 1; i < seg.points.length; i++) {
+                envelopeGfx.lineTo(seg.points[i].x, seg.points[i].y);
+            }
+        }
+
+        console.group(`Envelope of Collatz caustic  (${q}n + ${w})`);
+        console.log('β = k·α + φ   where k = q / 2^j');
+        console.log('Parametric:');
+        console.log('  γ(α) = (k−1)·α + φ');
+        console.log('  t(α) = R₁·(R₂·cos γ − R₁) / [R₁·R₂·(k+1)·cos γ − R₁² − k·R₂²]');
+        console.log('  x(α) = (1−t)·R₁·cos α + t·R₂·cos(kα+φ)');
+        console.log('  y(α) = (1−t)·R₁·sin α + t·R₂·sin(kα+φ)');
+        console.log('');
+        for (const seg of envelope) {
+            console.log(
+                `  zone ${seg.srcZone} → ${seg.dstZone}:  k=${seg.k.toFixed(4)}  φ=${seg.phi.toFixed(4)} rad  ${seg.points.length} pts`,
+            );
+        }
+        console.log('Raw data:', envelope);
+        console.groupEnd();
+    }
+
     /* ══════════════════════════════════════════
        RUN STATIC BUILDS
        ══════════════════════════════════════════ */
     buildGuides();
     buildEdges();
+    envelopeGfx.lineStyle(1.5, 0x00FFCC, 0.7);
+    drawEnvelope();
     buildNodes();
     if (showLabels) buildLabels();
     buildLegend();
