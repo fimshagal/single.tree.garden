@@ -15,6 +15,7 @@ export interface EnvelopeSegment {
     dstZone: number;
     k: number;
     phi: number;
+    predicted: boolean;
     points: { x: number; y: number; r: number; theta: number }[];
 }
 
@@ -26,6 +27,8 @@ export interface EnvelopeParams {
     ringSpacing: number;
     innerRadius: number;
     samples?: number;
+    /** Extra zones beyond maxZone to predict (same numerical method, no graph needed). */
+    predictZones?: number;
 }
 
 export function computeEnvelope(params: EnvelopeParams): EnvelopeSegment[] {
@@ -33,13 +36,16 @@ export function computeEnvelope(params: EnvelopeParams): EnvelopeSegment[] {
         q, w, minZone, maxZone,
         ringSpacing, innerRadius,
         samples = 800,
+        predictZones = 0,
     } = params;
 
+    const totalMax = maxZone + predictZones;
     const ringR = (zone: number): number => innerRadius + (zone - minZone) * ringSpacing;
     const result: EnvelopeSegment[] = [];
 
-    for (let n = minZone; n <= maxZone; n++) {
+    for (let n = minZone; n <= totalMax; n++) {
         const R1 = ringR(n);
+        const predicted = n > maxZone;
 
         const linesByTarget = new Map<number, { alpha: number; ax: number; ay: number; bx: number; by: number }[]>();
 
@@ -50,7 +56,7 @@ export function computeEnvelope(params: EnvelopeParams): EnvelopeSegment[] {
             if (tv <= 0 || !Number.isFinite(tv)) continue;
 
             const m = Math.floor(Math.log2(tv));
-            if (m < minZone || m > maxZone) continue;
+            if (m < minZone || m > totalMax) continue;
 
             const R2 = ringR(m);
             const alpha = -Math.PI / 2 + 2 * Math.PI * s;
@@ -70,10 +76,12 @@ export function computeEnvelope(params: EnvelopeParams): EnvelopeSegment[] {
 
             const j = m - n;
             const k = q / 2 ** j;
-            const a0 = lines[0].alpha;
-            const b0 = -Math.PI / 2 + 2 * Math.PI *
-                ((q * 2 ** n * (1 + (a0 + Math.PI / 2) / (2 * Math.PI)) + w - 2 ** m) / 2 ** m);
-            const phi = b0 - k * a0;
+            const aMid = lines[Math.floor(lines.length / 2)].alpha;
+            const sMid = (aMid + Math.PI / 2) / (2 * Math.PI);
+            const vMid = 2 ** n * (1 + sMid);
+            const tvMid = q * vMid + w;
+            const betaMid = -Math.PI / 2 + 2 * Math.PI * ((tvMid - 2 ** m) / 2 ** m);
+            const phi = betaMid - k * aMid;
 
             const points: EnvelopeSegment['points'] = [];
 
@@ -100,7 +108,7 @@ export function computeEnvelope(params: EnvelopeParams): EnvelopeSegment[] {
             }
 
             if (points.length > 0) {
-                result.push({ srcZone: n, dstZone: m, k, phi, points });
+                result.push({ srcZone: n, dstZone: m, k, phi, predicted, points });
             }
         }
     }

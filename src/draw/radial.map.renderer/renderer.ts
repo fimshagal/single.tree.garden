@@ -68,9 +68,10 @@ export function createRadialMapRenderer(
     const {
         ringSpacing: rs = 42,
         innerRadius: ir = 32,
+        predictZones: pz = 0,
     } = options;
 
-    worker.postMessage({ graphOpts, ringSpacing: rs, innerRadius: ir });
+    worker.postMessage({ graphOpts, ringSpacing: rs, innerRadius: ir, predictZones: pz });
     worker.onmessage = (e) => {
         const raw = e.data as {
             zones: Power2Graph['zones'];
@@ -344,15 +345,29 @@ function initScene(
         };
     }
 
-    function drawEnvelope(): void {
-        for (const seg of envelope) {
+    function drawSegments(segs: EnvelopeSegment[]): void {
+        for (const seg of segs) {
             if (seg.points.length < 2) continue;
             envelopeGfx.moveTo(seg.points[0].x, seg.points[0].y);
             for (let i = 1; i < seg.points.length; i++) {
                 envelopeGfx.lineTo(seg.points[i].x, seg.points[i].y);
             }
         }
+    }
 
+    function drawEnvelope(): void {
+        const known = envelope.filter(s => !s.predicted);
+        const predicted = envelope.filter(s => s.predicted);
+
+        envelopeGfx.lineStyle(1.5, 0x00FFCC, 0.7);
+        drawSegments(known);
+
+        if (predicted.length > 0) {
+            envelopeGfx.lineStyle(1.2, 0xFF3333, 0.7);
+            drawSegments(predicted);
+        }
+
+        const tag = (s: EnvelopeSegment) => s.predicted ? ' [predicted]' : '';
         console.group(`Envelope of Collatz caustic  (${q}n + ${w})`);
         console.log('β = k·α + φ   where k = q / 2^j');
         console.log('Parametric:');
@@ -363,7 +378,7 @@ function initScene(
         console.log('');
         for (const seg of envelope) {
             console.log(
-                `  zone ${seg.srcZone} → ${seg.dstZone}:  k=${seg.k.toFixed(4)}  φ=${seg.phi.toFixed(4)} rad  ${seg.points.length} pts`,
+                `  zone ${seg.srcZone} → ${seg.dstZone}:  k=${seg.k.toFixed(4)}  φ=${seg.phi.toFixed(4)} rad  ${seg.points.length} pts${tag(seg)}`,
             );
         }
         console.log('Raw data:', envelope);
@@ -375,7 +390,6 @@ function initScene(
        ══════════════════════════════════════════ */
     buildGuides();
     buildEdges();
-    envelopeGfx.lineStyle(1.5, 0x00FFCC, 0.7);
     drawEnvelope();
     buildNodes();
     if (showLabels) buildLabels();
@@ -615,6 +629,23 @@ function initScene(
     animBtn.onmouseleave = () => { animBtn.style.background = '#1a1a2e'; animBtn.style.color = '#aaa'; };
     parent.appendChild(animBtn);
 
+    const causticBtn = document.createElement('button');
+    causticBtn.textContent = '◉  Caustic';
+    causticBtn.style.cssText =
+        'position:absolute;bottom:12px;left:130px;padding:6px 14px;' +
+        'background:#1a1a2e;color:#aaa;border:1px solid #333;border-radius:4px;' +
+        'font-family:monospace;font-size:12px;cursor:pointer;z-index:10;' +
+        'transition:background .15s,color .15s;';
+    causticBtn.onmouseenter = () => { causticBtn.style.background = '#2a2a4e'; causticBtn.style.color = '#ddd'; };
+    causticBtn.onmouseleave = () => { if (!envelopeGfx.visible) { causticBtn.style.background = '#1a1a2e'; causticBtn.style.color = '#aaa'; } };
+    causticBtn.addEventListener('click', () => {
+        envelopeGfx.visible = !envelopeGfx.visible;
+        causticBtn.style.background = envelopeGfx.visible ? '#0a2a2a' : '#1a1a2e';
+        causticBtn.style.color = envelopeGfx.visible ? '#00FFCC' : '#aaa';
+        causticBtn.style.borderColor = envelopeGfx.visible ? '#00FFCC55' : '#333';
+    });
+    parent.appendChild(causticBtn);
+
     function edgeStyle(e: typeof animEdges[0]): void {
         const fn = graph.nodes.get(e.from);
         if (e.type === 'div2') {
@@ -700,6 +731,7 @@ function initScene(
     return () => {
         animTween?.kill();
         animBtn.remove();
+        causticBtn.remove();
         gsap.ticker.remove(tick);
         view.removeEventListener('wheel', onWheel);
         view.removeEventListener('mousedown', onDown);

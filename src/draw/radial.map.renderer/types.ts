@@ -12,4 +12,6 @@ export interface RadialMapRendererOptions {
     showLabels?: boolean;
     showCoverage?: boolean;
     showDiv2Edges?: boolean;
+    /** Extra zones beyond maxZone for envelope prediction (default 0). */
+    predictZones?: number;
 }

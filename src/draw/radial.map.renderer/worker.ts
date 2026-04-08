@@ -6,10 +6,11 @@ interface WorkerInput {
     graphOpts: Power2BuildOptions;
     ringSpacing: number;
     innerRadius: number;
+    predictZones: number;
 }
 
 self.onmessage = (e: MessageEvent<WorkerInput>) => {
-    const { graphOpts, ringSpacing, innerRadius } = e.data;
+    const { graphOpts, ringSpacing, innerRadius, predictZones } = e.data;
     const graph = buildPower2Graph(graphOpts);
 
     const minZone = graph.zones[0]?.n ?? 2;
@@ -22,6 +23,7 @@ self.onmessage = (e: MessageEvent<WorkerInput>) => {
         maxZone,
         ringSpacing,
         innerRadius,
+        predictZones,
     });
 
     self.postMessage({
