@@ -210,9 +210,9 @@ import {createRadialMapRenderer} from "./draw/radial.map.renderer";
             minZone: 2,
             maxZone: 16,
             maxInverseDepth: 50,
-            maxNodes: 47_000,
+            maxNodes: 50_000,
             forwardFill: true,
-            forwardFillMaxZone: 15, // q
+            forwardFillMaxZone: 16,
             multiplier: 3,
             increment: 1,
         },
@@ -220,7 +220,7 @@ import {createRadialMapRenderer} from "./draw/radial.map.renderer";
         innerRadius: 30,
         edgeOpacity: 0.12,
         showDiv2Edges: false,
-        predictCausticZones: 12
+        predictCausticZones: 8
     });
 
     // initRenderer({
