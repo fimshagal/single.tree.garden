@@ -85,14 +85,26 @@ export function createRadialMapRenderer(
     qInput.type = 'number';
     qInput.className = 'rm-input';
     qInput.min = '1';
-    qInput.step = '2';
     qInput.value = String(baseGraphOpts.multiplier);
 
     const wInput = document.createElement('input');
     wInput.type = 'number';
     wInput.className = 'rm-input';
-    wInput.step = '2';
     wInput.value = String(baseGraphOpts.increment);
+
+    const maxLimitInput = document.createElement('input');
+    maxLimitInput.type = 'number';
+    maxLimitInput.className = 'rm-input';
+    maxLimitInput.min = '2';
+    maxLimitInput.max = '24';
+    maxLimitInput.value = String(baseGraphOpts.maxZone);
+
+    const predictInput = document.createElement('input');
+    predictInput.type = 'number';
+    predictInput.className = 'rm-input';
+    predictInput.min = '0';
+    predictInput.max = '20';
+    predictInput.value = String(pz);
 
     const qLabel = document.createElement('label');
     qLabel.className = 'rm-label';
@@ -103,6 +115,16 @@ export function createRadialMapRenderer(
     wLabel.className = 'rm-label';
     wLabel.textContent = 'w';
     wLabel.appendChild(wInput);
+
+    const maxLimitLabel = document.createElement('label');
+    maxLimitLabel.className = 'rm-label';
+    maxLimitLabel.textContent = 'maxLimit';
+    maxLimitLabel.appendChild(maxLimitInput);
+
+    const predictLabel = document.createElement('label');
+    predictLabel.className = 'rm-label';
+    predictLabel.textContent = 'predict';
+    predictLabel.appendChild(predictInput);
 
     const formula = document.createElement('span');
     formula.className = 'rm-formula';
@@ -117,24 +139,15 @@ export function createRadialMapRenderer(
     recalcBtn.className = 'rm-btn rm-btn-recalc';
     recalcBtn.textContent = '⟳  Recalc';
 
-    panel.append(qLabel, wLabel, formula, recalcBtn);
+    panel.append(qLabel, wLabel, maxLimitLabel, predictLabel, formula, recalcBtn);
     parent.appendChild(panel);
-
-    /* ── enforce odd increment on blur ── */
-    wInput.addEventListener('blur', () => {
-        let v = parseInt(wInput.value, 10);
-        if (isNaN(v) || v === 0) v = 1;
-        if (v % 2 === 0) v += v > 0 ? 1 : -1;
-        wInput.value = String(v);
-        updateFormula();
-    });
 
     /* ── lifecycle state ── */
     let activeWorker: Worker | null = null;
     let destroyScene: (() => void) | null = null;
     let loader: HTMLDivElement | null = null;
 
-    function launch(multiplier: number, increment: number): void {
+    function launch(multiplier: number, increment: number, maxZone: number, predict: number): void {
         activeWorker?.terminate();
         destroyScene?.();
         loader?.remove();
@@ -145,14 +158,18 @@ export function createRadialMapRenderer(
         loader.className = 'rm-loader';
         parent.appendChild(loader);
 
-        const graphOpts = { ...baseGraphOpts, multiplier, increment };
+        const graphOpts = {
+            ...baseGraphOpts,
+            multiplier, increment,
+            maxZone, forwardFillMaxZone: maxZone,
+        };
         const worker = new Worker(
             new URL('./worker.ts', import.meta.url),
             { type: 'module' },
         );
         activeWorker = worker;
 
-        worker.postMessage({ graphOpts, ringSpacing: rs, innerRadius: ir, predictCausticZones: pz });
+        worker.postMessage({ graphOpts, ringSpacing: rs, innerRadius: ir, predictCausticZones: predict });
         worker.onmessage = (e) => {
             if (activeWorker !== worker) return;
             const raw = e.data as {
@@ -188,16 +205,22 @@ export function createRadialMapRenderer(
     recalcBtn.addEventListener('click', () => {
         let qVal = parseInt(qInput.value, 10);
         let wVal = parseInt(wInput.value, 10);
+        let mVal = parseInt(maxLimitInput.value, 10);
+        let prVal = parseInt(predictInput.value, 10);
         if (isNaN(qVal) || qVal < 1) qVal = 1;
-        if (isNaN(wVal) || wVal === 0) wVal = 1;
-        if (wVal % 2 === 0) wVal += wVal > 0 ? 1 : -1;
+        if (isNaN(wVal)) wVal = 1;
+        if (isNaN(mVal) || mVal < 2) mVal = 2;
+        if (mVal > 24) mVal = 24;
+        if (isNaN(prVal) || prVal < 0) prVal = 0;
         qInput.value = String(qVal);
         wInput.value = String(wVal);
+        maxLimitInput.value = String(mVal);
+        predictInput.value = String(prVal);
         updateFormula();
-        launch(qVal, wVal);
+        launch(qVal, wVal, mVal, prVal);
     });
 
-    launch(baseGraphOpts.multiplier, baseGraphOpts.increment);
+    launch(baseGraphOpts.multiplier, baseGraphOpts.increment, baseGraphOpts.maxZone, pz);
 
     return () => {
         activeWorker?.terminate();
